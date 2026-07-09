@@ -1,0 +1,19 @@
+project_id = "gsjxolnxtckdbjpfcobx"
+
+[functions.track-news-view]
+verify_jwt = false
+
+[functions.submit-comment]
+verify_jwt = false
+
+[functions.report-comment]
+verify_jwt = false
+
+[functions.og-meta]
+verify_jwt = false
+
+[functions.create-presenter]
+verify_jwt = false
+
+[functions.update-presenter-password]
+verify_jwt = false

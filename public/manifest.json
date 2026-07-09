@@ -1,0 +1,21 @@
+{
+  "name": "জনমত ২৪ - সত্য প্রচার আমাদের অঙ্গীকার",
+  "short_name": "জনমত ২৪",
+  "description": "বাংলাদেশের বিশ্বস্ত সংবাদ মাধ্যম। নিরপেক্ষতা ও সত্য প্রচার আমাদের অঙ্গীকার।",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

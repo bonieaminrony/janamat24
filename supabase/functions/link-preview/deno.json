@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "cheerio": "https://esm.sh/cheerio@1.0.0-rc.12",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3"
+  }
+}

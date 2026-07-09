@@ -1,0 +1,10 @@
+User-agent: Googlebot
+Allow: /
+
+User-agent: *
+Allow: /
+
+Sitemap: https://janamat24.com/sitemap.xml
+
+User-agent: facebookexternalhit
+Allow: /

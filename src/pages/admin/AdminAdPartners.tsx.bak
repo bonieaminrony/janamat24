@@ -1,0 +1,286 @@
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Pencil, Trash2, Building2, Image, ExternalLink, MousePointerClick, ChevronRight, Megaphone } from "lucide-react";
+import { AdMediaUpload } from "@/components/admin/AdMediaUpload";
+import { ImageUpload } from "@/components/admin/ImageUpload";
+import { sanitizeLinkUrl } from "@/lib/url-utils";
+import { toBanglaNumber } from "@/lib/bangla-utils";
+import { cn } from "@/lib/utils";
+
+const PLACEMENTS = [
+  { value: "home_page_top", label: "Home Page Top (হোম পেজ উপরে)", type: "wide" },
+  { value: "home_page_middle", label: "Home Page Middle (হোম পেজ মাঝখানে)", type: "wide" },
+  { value: "home_column_center", label: "Home Column Center (হোম পেজ ২য় কলামের নিচে)", type: "wide" },
+  { value: "home_feed", label: "Home Feed (সর্বশেষ সংবাদের মাঝে - পাশে)", type: "native" },
+  { value: "featured_news_inline", label: "Featured News Inline (বিশেষ সংবাদের মাঝে)", type: "wide" },
+  { value: "article_inline", label: "Article Inline (খবর ২য় প্যারাগ্রাফের পর)", type: "wide" },
+  { value: "article_side", label: "Article Side (খবর পাতার পাশে)", type: "square" },
+  { value: "article_related", label: "Article Related (সম্পর্কিত খবরের মাঝে)", type: "wide" },
+  { value: "quran_top_banner", label: "Quran Top Banner (কোরআন শরীফ উপরে)", type: "wide" },
+  { value: "quran_side_square", label: "Quran Side Square (কোরআন শরীফ পাশে)", type: "square" },
+];
+
+export default function AdminAdPartners() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Form State
+  const [partnerName, setPartnerName] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [companyLogo, setCompanyLogo] = useState("");
+  const [adType, setAdType] = useState("single_image");
+  const [placementType, setPlacementType] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [imageUrl2, setImageUrl2] = useState("");
+  const [linkUrl2, setLinkUrl2] = useState("");
+  const [imageUrl3, setImageUrl3] = useState("");
+  const [linkUrl3, setLinkUrl3] = useState("");
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [isActive, setIsActive] = useState(true);
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: banners = [], isLoading } = useQuery({
+    queryKey: ["ad-banners-complete"],
+    queryFn: async () => {
+      const { data: bannersData } = await supabase.from("ad_banners").select("*, ad_partners(name, logo_url, website_url)").order("created_at", { ascending: false });
+      const { data: clicksData } = await supabase.from("ad_banner_clicks").select("banner_id");
+      
+      const clickCounts: Record<string, number> = {};
+      clicksData?.forEach(click => { clickCounts[click.banner_id] = (clickCounts[click.banner_id] || 0) + 1; });
+
+      return (bannersData || []).map((b: any) => ({
+        ...b,
+        totalClicks: clickCounts[b.id] || 0,
+        partner_name: b.ad_partners?.name || 'Unknown',
+        website_url: b.ad_partners?.website_url || null
+      }));
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      // 1. Check or create Partner
+      let partnerId = "";
+      const { data: existingPartners } = await supabase.from("ad_partners").select("id").eq("name", partnerName.trim());
+      if (existingPartners && existingPartners.length > 0) {
+        partnerId = existingPartners[0].id;
+      } else {
+        const { data: newPartner } = await supabase.from("ad_partners").insert({ 
+          name: partnerName.trim(), 
+          logo_url: companyLogo.trim() || null, 
+          website_url: websiteUrl.trim() || null, 
+          is_active: true 
+        }).select().single();
+        if (newPartner) partnerId = newPartner.id;
+      }
+
+      const bannerData = {
+        partner_id: partnerId,
+        placement_type: placementType,
+        ad_type: adType,
+        image_url: imageUrl,
+        image_url_2: imageUrl2 || null,
+        image_url_3: imageUrl3 || null,
+        link_url: linkUrl || null,
+        link_url_2: linkUrl2 || null,
+        link_url_3: linkUrl3 || null,
+        title: title || null,
+        subtitle: subtitle || null,
+        company_logo: companyLogo || null,
+        is_active: isActive
+      };
+
+      if (editingId) {
+        await supabase.from("ad_banners").update(bannerData).eq("id", editingId);
+      } else {
+        await supabase.from("ad_banners").insert([bannerData]);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ad-banners-complete"] });
+      toast({ title: "সফল", description: "বিজ্ঞাপন সংরক্ষিত হয়েছে" });
+      setDialogOpen(false);
+    }
+  });
+
+  const openNewDialog = () => {
+    setEditingId(null);
+    setPartnerName("");
+    setWebsiteUrl("");
+    setCompanyLogo("");
+    setAdType("single_image");
+    setPlacementType("");
+    setImageUrl("");
+    setImageUrl2("");
+    setImageUrl3("");
+    setLinkUrl("");
+    setLinkUrl2("");
+    setLinkUrl3("");
+    setTitle("");
+    setSubtitle("");
+    setIsActive(true);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (b: any) => {
+    setEditingId(b.id);
+    setPartnerName(b.partner_name);
+    setWebsiteUrl(b.website_url || "");
+    setCompanyLogo(b.company_logo || b.ad_partners?.logo_url || "");
+    setAdType(b.ad_type || "single_image");
+    setPlacementType(b.placement_type);
+    setImageUrl(b.image_url || "");
+    setImageUrl2(b.image_url_2 || "");
+    setImageUrl3(b.image_url_3 || "");
+    setLinkUrl(b.link_url || "");
+    setLinkUrl2(b.link_url_2 || "");
+    setLinkUrl3(b.link_url_3 || "");
+    setTitle(b.title || "");
+    setSubtitle(b.subtitle || "");
+    setIsActive(b.is_active);
+    setDialogOpen(true);
+  };
+
+  return (
+    <div className="space-y-10 pb-20 animate-in fade-in duration-1000 slide-in-from-bottom-5">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+        <div className="space-y-3">
+           <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tightest leading-none">বিজ্ঞাপন কেন্দ্র</h1>
+           <p className="text-slate-500 dark:text-slate-400 font-medium text-xl leading-relaxed max-w-2xl font-bengali">আপনার পোর্টালের বিজ্ঞাপন ইনভেন্টরি এখান থেকে নিয়ন্ত্রণ করুন।</p>
+        </div>
+        <Button onClick={openNewDialog} className="h-12 px-10 rounded-2xl bg-slate-900 dark:bg-primary hover:bg-slate-800 dark:hover:opacity-90 text-white dark:text-primary-foreground font-bold text-lg shadow-2xl shadow-black/5 active:scale-95 transition-all gap-4">
+          <Plus className="w-6 h-6" /> নতুন বিজ্ঞাপন দিন
+        </Button>
+      </div>
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+         {banners.map((b: any) => (
+           <Card key={b.id} className="group border-slate-200/50 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900 overflow-hidden hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 flex flex-col">
+              <CardHeader className="p-6 pb-4 flex flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800/50">
+                 <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center overflow-hidden">
+                       {b.company_logo || b.ad_partners?.logo_url ? <img src={b.company_logo || b.ad_partners?.logo_url} alt="" className="w-full h-full object-cover" /> : <Building2 className="w-5 h-5 text-slate-300 dark:text-slate-600" />}
+                    </div>
+                    <div>
+                       <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-none mb-1">{b.partner_name}</h3>
+                       <p className="text-xs text-slate-500 dark:text-slate-400">{PLACEMENTS.find(p => p.value === b.placement_type)?.label || b.placement_type}</p>
+                    </div>
+                 </div>
+                 <Badge className={cn("text-[9px] font-bold uppercase tracking-widest border-none px-2 py-1", b.is_active ? "bg-emerald-50 text-emerald-500" : "bg-slate-50 text-slate-400")}>{b.is_active ? "Live" : "Inactive"}</Badge>
+              </CardHeader>
+              <CardContent className="p-6 pt-4 flex-1 flex flex-col">
+                 {b.image_url && <img src={b.image_url} alt="Ad" className="w-full h-24 object-cover rounded-xl mb-4 border border-slate-100 dark:border-slate-800" />}
+                 <div className="flex items-center justify-between p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 mb-4">
+                    <div className="flex items-center gap-2">
+                       <MousePointerClick className="w-4 h-4 text-indigo-500" />
+                       <span className="text-sm font-bold text-slate-900 dark:text-white">{toBanglaNumber(b.totalClicks)} ক্লিক</span>
+                    </div>
+                    {b.link_url && <a href={sanitizeLinkUrl(b.link_url)} target="_blank" className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><ExternalLink className="w-4 h-4" /></a>}
+                 </div>
+                 <div className="mt-auto pt-4 flex items-center justify-between">
+                    <div className="flex gap-2">
+                       <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-white hover:shadow-lg transition-all" onClick={() => openEditDialog(b)}><Pencil className="w-4 h-4 text-slate-400 hover:text-slate-900" /></Button>
+                       <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-white hover:shadow-lg transition-all text-rose-400 hover:text-rose-500" onClick={() => { if(confirm("মুছবেন?")) supabase.from("ad_banners").delete().eq("id", b.id).then(() => queryClient.invalidateQueries({queryKey:["ad-banners-complete"]})) }}><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                 </div>
+              </CardContent>
+           </Card>
+         ))}
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-none w-full h-full lg:h-auto lg:max-w-3xl lg:rounded-2xl p-6 border-none shadow-2xl bg-white dark:bg-slate-950 overflow-hidden flex flex-col">
+           <DialogHeader className="mb-6">
+              <div className="flex items-center gap-3">
+                 <div className="p-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 rounded-2xl"><Megaphone className="w-6 h-6" /></div>
+                 <DialogTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{editingId ? "বিজ্ঞাপন সম্পাদনা" : "নতুন বিজ্ঞাপন দিন"}</DialogTitle>
+              </div>
+           </DialogHeader>
+           <div className="space-y-6 max-h-[75vh] overflow-y-auto px-1 pb-4">
+              <div className="grid grid-cols-2 gap-6">
+                 <div className="space-y-2">
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">অ্যাড টাইপ</Label>
+                    <Select value={adType} onValueChange={setAdType}>
+                       <SelectTrigger className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200">
+                          <SelectValue placeholder="অ্যাড টাইপ নির্বাচন করুন" />
+                       </SelectTrigger>
+                       <SelectContent>
+                          <SelectItem value="single_image">সিঙ্গেল ইমেজ (স্ট্যান্ডার্ড)</SelectItem>
+                          <SelectItem value="native_ad">নেটিভ অ্যাড (টেক্সট + ইমেজ)</SelectItem>
+                          <SelectItem value="triple_image_ad">ট্রিপল ইমেজ অ্যাড (৩টি ছবি + ৩টি লিংক)</SelectItem>
+                       </SelectContent>
+                    </Select>
+                 </div>
+                 <div className="space-y-2">
+                    <Label className="font-bold text-slate-700 dark:text-slate-300">বিজ্ঞাপনের অবস্থান</Label>
+                    <Select value={placementType} onValueChange={setPlacementType}>
+                       <SelectTrigger className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200">
+                          <SelectValue placeholder="অবস্থান নির্বাচন করুন" />
+                       </SelectTrigger>
+                       <SelectContent>
+                          {PLACEMENTS.map(p => (
+                            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                          ))}
+                       </SelectContent>
+                    </Select>
+                 </div>
+              </div>
+
+              <div className="space-y-2">
+                 <Label className="font-bold text-slate-700 dark:text-slate-300">বিজ্ঞাপনের ব্যানার / ইমেজ (১ম ছবি)</Label>
+                 <AdMediaUpload value={imageUrl} onChange={setImageUrl} requiredWidth={800} requiredHeight={400} placementLabel="Banner" />
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-6">
+                 <div className="space-y-2"><Label className="font-bold text-slate-700 dark:text-slate-300">বিজ্ঞাপনের শিরোনাম (কোম্পানি নাম)</Label><Input value={partnerName} onChange={e => setPartnerName(e.target.value)} className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900" placeholder="কোম্পানির নাম লিখুন..." /></div>
+                 <div className="space-y-2"><Label className="font-bold text-slate-700 dark:text-slate-300">১ম লিংক (URL)</Label><Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900" placeholder="https://" /></div>
+              </div>
+
+              {adType === "triple_image_ad" && (
+                <div className="space-y-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <Label className="font-bold text-slate-700 dark:text-slate-300">২য় ছবি (ডান পাশে উপরে)</Label>
+                       <AdMediaUpload value={imageUrl2} onChange={setImageUrl2} requiredWidth={400} requiredHeight={200} placementLabel="Banner 2" />
+                    </div>
+                    <div className="space-y-2"><Label className="font-bold text-slate-700 dark:text-slate-300">২য় লিংক (URL)</Label><Input value={linkUrl2} onChange={e => setLinkUrl2(e.target.value)} className="h-12 rounded-xl bg-white dark:bg-slate-950" placeholder="https://" /></div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <Label className="font-bold text-slate-700 dark:text-slate-300">৩য় ছবি (ডান পাশে নিচে)</Label>
+                       <AdMediaUpload value={imageUrl3} onChange={setImageUrl3} requiredWidth={400} requiredHeight={200} placementLabel="Banner 3" />
+                    </div>
+                    <div className="space-y-2"><Label className="font-bold text-slate-700 dark:text-slate-300">৩য় লিংক (URL)</Label><Input value={linkUrl3} onChange={e => setLinkUrl3(e.target.value)} className="h-12 rounded-xl bg-white dark:bg-slate-950" placeholder="https://" /></div>
+                  </div>
+                </div>
+              )}
+
+              {adType === "native_ad" && (
+                <div className="grid sm:grid-cols-2 gap-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                   <div className="space-y-2"><Label className="font-bold text-slate-700 dark:text-slate-300">বিজ্ঞাপনের সাব-টাইটেল (ঐচ্ছিক)</Label><Input value={subtitle} onChange={e => setSubtitle(e.target.value)} className="h-12 rounded-xl bg-white dark:bg-slate-950" /></div>
+                   <div className="space-y-2"><Label className="font-bold text-slate-700 dark:text-slate-300">কোম্পানি লোগো (ঐচ্ছিক)</Label><ImageUpload value={companyLogo} onChange={setCompanyLogo} /></div>
+                </div>
+              )}
+              
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !partnerName || !placementType || !imageUrl} className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-xl active:scale-95 transition-all">
+                {editingId ? "আপডেট করুন" : "পাবলিশ অ্যাড নাও"}
+              </Button>
+           </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
