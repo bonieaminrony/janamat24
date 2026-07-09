@@ -1,0 +1,23 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NPM_FLAGS = "--include=dev"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[edge_functions]]
+  function = "seo-meta"
+  path = "/news/*"
+
+[[edge_functions]]
+  function = "seo-meta"
+  path = "/news-image/*"
+
+[[edge_functions]]
+  function = "seo-meta"
+  path = "/category/*"

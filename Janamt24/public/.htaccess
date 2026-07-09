@@ -1,0 +1,20 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve news-image via seo.php (no bot check needed — always serve image)
+  RewriteRule ^news-image/(.*)$ seo.php?type=news-image&slug=$1 [L,QSA]
+
+  # Rewrite sitemap.xml to sitemap.php
+  RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+  # Intercept social media & search engine bots → seo.php for OG meta
+  RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|Twitterbot|Pinterest|WhatsApp|LinkedInBot|vkShare|W3C_Validator|Slackbot|TelegramBot|Discordbot|SkypeUriPreview|Googlebot|bingbot|Applebot|ia_archiver) [NC]
+  RewriteCond %{QUERY_STRING} !spa=1
+  RewriteRule ^(news|category)/(.*)$ seo.php?type=$1&slug=$2 [L,QSA]
+
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
