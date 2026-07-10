@@ -76,7 +76,7 @@ export default function AdminCardGenerator() {
 
     // Load saved template or default
     const savedTemplate = localStorage.getItem("savedTemplate");
-    const defaultTemplate = "/Card news bk.png";
+    const defaultTemplate = "/card-news-bg-default-v2.png";
     const templateToLoad = savedTemplate || defaultTemplate;
     
     setTemplateSrc(templateToLoad);
@@ -141,7 +141,7 @@ export default function AdminCardGenerator() {
 
   const handleTemplateReset = () => {
     localStorage.removeItem("savedTemplate");
-    const defaultTemplate = "/Card news bk.png";
+    const defaultTemplate = "/card-news-bg-default-v2.png";
     setTemplateSrc(defaultTemplate);
     const img = new Image();
     img.onload = () => {

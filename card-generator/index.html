@@ -312,7 +312,7 @@
 
     <div class="preview-container" style="flex-direction: column; align-items: center;">
         <div id="card-preview">
-            <img id="template-bg" src="/Card news bk.png" alt="">
+            <img id="template-bg" src="/card-news-bg-default-v2.png" alt="">
             <div id="card-date">২৬ মে ২০২৬</div>
             <div id="card-headline">
                 <div class="hl-line1" id="preview-line1">‘লাব্বাইক আল্লাহুম্মা লাব্বাইক’</div>
@@ -439,7 +439,7 @@
 
         function resetTemplate() {
             localStorage.removeItem('savedTemplate');
-            const defaultTemplate = "/Card news bk.png";
+            const defaultTemplate = "/card-news-bg-default-v2.png";
             
             const templateImg = document.getElementById('template-bg');
             templateImg.src = defaultTemplate;
@@ -455,7 +455,7 @@
         window.onload = function() {
             adjustFontSize();
             const saved = localStorage.getItem('savedTemplate');
-            const templateSrc = saved ? saved : "/Card news bk.png";
+            const templateSrc = saved ? saved : "/card-news-bg-default-v2.png";
             
             const templateImg = document.getElementById('template-bg');
             templateImg.src = templateSrc;
