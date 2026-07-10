@@ -24,7 +24,8 @@ import {
   AlertCircle,
   Pencil,
   X,
-  Copy
+  Copy,
+  Loader2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,7 +100,10 @@ export default function AdminNews() {
   const { data: news = [], isLoading } = useQuery<News[]>({
     queryKey: ["admin-news"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("news").select(`*, categories(name)`).order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("news")
+        .select("id, title, slug, excerpt, image_url, category_id, author_id, status, is_featured, published_at, created_at, views, categories(name)")
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as News[];
     },
@@ -139,9 +143,30 @@ export default function AdminNews() {
     },
   });
 
-  const openEdit = (n: News) => {
-    setEditingNews(n);
-    setDialogOpen(true);
+  const [fetchingFullNews, setFetchingFullNews] = useState<string | null>(null);
+
+  const openEdit = async (n: News) => {
+    setFetchingFullNews(n.id);
+    try {
+      const { data, error } = await supabase
+        .from("news")
+        .select("*")
+        .eq("id", n.id)
+        .single();
+        
+      if (error) throw error;
+      setEditingNews(data as News);
+      setDialogOpen(true);
+    } catch (err) {
+      console.error("Error fetching full news content:", err);
+      toast({
+        variant: "destructive",
+        title: "ত্রুটি",
+        description: "খবরের বিস্তারিত তথ্য লোড করতে সমস্যা হয়েছে।"
+      });
+    } finally {
+      setFetchingFullNews(null);
+    }
   };
 
   const filteredNews = useMemo(() => {
@@ -287,7 +312,19 @@ export default function AdminNews() {
                     </div>
                   </div>
                     <div className="flex items-center gap-2 lg:pl-10">
-                     <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm" onClick={() => openEdit(n)}><Pencil className="w-4 h-4 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white" /></Button>
+                     <Button 
+                       size="icon" 
+                       variant="ghost" 
+                       className="h-9 w-9 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm" 
+                       onClick={() => openEdit(n)}
+                       disabled={fetchingFullNews !== null}
+                     >
+                       {fetchingFullNews === n.id ? (
+                         <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                       ) : (
+                         <Pencil className="w-4 h-4 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white" />
+                       )}
+                     </Button>
                      <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm" onClick={() => deleteMutation.mutate([n.id])}><Trash2 className="w-4 h-4 text-slate-400 dark:text-slate-500 hover:text-rose-500" /></Button>
                      <Button asChild size="icon" variant="ghost" className="h-9 w-9 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm"><a href={`/news/${n.slug}`} target="_blank"><Eye className="w-4 h-4 text-slate-400 dark:text-slate-500 hover:text-blue-500" /></a></Button>
                      <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm" onClick={() => handleCopyLink(n.slug)} title="লিংক কপি করুন"><Copy className="w-4 h-4 text-slate-400 dark:text-slate-500 hover:text-emerald-500" /></Button>
@@ -321,8 +358,20 @@ export default function AdminNews() {
                           </Avatar>
                           <p className="text-xs font-bold text-slate-400 dark:text-slate-500">{profilesMap.get(n.author_id || "")?.full_name || "Author"}</p>
                        </div>
-                       <div className="flex gap-1.5">
-                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 shadow-none hover:shadow-sm" onClick={() => openEdit(n)}><Pencil className="w-4 h-4 text-slate-500 dark:text-slate-400" /></Button>
+                        <div className="flex gap-1.5">
+                           <Button 
+                             size="icon" 
+                             variant="ghost" 
+                             className="h-8 w-8 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 shadow-none hover:shadow-sm" 
+                             onClick={() => openEdit(n)}
+                             disabled={fetchingFullNews !== null}
+                           >
+                             {fetchingFullNews === n.id ? (
+                               <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                             ) : (
+                               <Pencil className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                             )}
+                           </Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 shadow-none hover:shadow-sm text-rose-500" onClick={() => deleteMutation.mutate([n.id])}><Trash2 className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 shadow-none hover:shadow-sm" onClick={() => handleCopyLink(n.slug)} title="লিংক কপি করুন"><Copy className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-emerald-500" /></Button>
                        </div>

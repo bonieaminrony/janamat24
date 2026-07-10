@@ -82,7 +82,7 @@ const App = () => {
         <TooltipProvider>
           <RealtimeTracker />
           <Toaster />
-          <Sonner />
+          <Sonner position="top-right" />
           <BrowserRouter>
             <ScrollToTop />
             <GlobalErrorBoundary>
