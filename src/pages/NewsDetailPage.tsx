@@ -20,8 +20,6 @@ import { UniversalAdBanner } from "@/components/ads/UniversalAdBanner";
 import { CommentsSection } from "@/components/news/CommentsSection";
 import { RichContentWithAds } from "@/components/news/RichContentRenderer";
 import { ReadingProgress } from "@/components/ui/reading-progress";
-import { WeatherWidget } from "@/components/widgets/WeatherWidget";
-import { PrayerTimesWidget } from "@/components/widgets/PrayerTimesWidget";
 import { TabbedNewsWidget } from "@/components/widgets/TabbedNewsWidget";
 import { NewsletterWidget } from "@/components/widgets/NewsletterWidget";
 

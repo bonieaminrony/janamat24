@@ -6,7 +6,6 @@ import { useTheme } from "next-themes";
 import { formatBanglaDateFull, formatBanglaTime, toBanglaNumber } from "@/lib/bangla-utils";
 import { Button } from "@/components/ui/button";
 import { SearchDialog } from "@/components/search/SearchDialog";
-import { PushNotificationPrompt } from "@/components/widgets/PushNotificationPrompt";
 import { UniversalAdBanner } from "@/components/ads/UniversalAdBanner";
 import { LanguageTranslator } from "@/components/widgets/LanguageTranslator";
 import logo from "@/assets/logo.png";
