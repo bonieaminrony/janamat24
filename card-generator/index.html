@@ -248,7 +248,10 @@
         
         <div class="form-group">
             <label>টেম্পলেট ছবি (একবার আপলোড করলেই হবে):</label>
-            <input type="file" id="template-upload" accept="image/*">
+            <div style="display: flex; gap: 8px;">
+                <input type="file" id="template-upload" accept="image/*" style="flex: 1;">
+                <button type="button" onclick="resetTemplate()" style="width: auto; background-color: #666; color: white; border: none; border-radius: 4px; padding: 10px 15px; margin-top: 0; cursor: pointer; font-size: 14px;">রিসেট</button>
+            </div>
         </div>
 
         <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
@@ -309,7 +312,7 @@
 
     <div class="preview-container" style="flex-direction: column; align-items: center;">
         <div id="card-preview">
-            <img id="template-bg" src="Janamt24/Card news bk.png" alt="">
+            <img id="template-bg" src="/Card news bk.png" alt="">
             <div id="card-date">২৬ মে ২০২৬</div>
             <div id="card-headline">
                 <div class="hl-line1" id="preview-line1">‘লাব্বাইক আল্লাহুম্মা লাব্বাইক’</div>
@@ -434,10 +437,25 @@
             }
         });
 
+        function resetTemplate() {
+            localStorage.removeItem('savedTemplate');
+            const defaultTemplate = "/Card news bk.png";
+            
+            const templateImg = document.getElementById('template-bg');
+            templateImg.src = defaultTemplate;
+            const img = new Image();
+            img.onload = function() {
+                const ratio = img.height / img.width;
+                document.getElementById('card-preview').style.height = (800 * ratio) + 'px';
+            };
+            img.src = defaultTemplate;
+            alert("টেম্পলেট রিসেট করা হয়েছে এবং ডিফল্ট ব্যাকগ্রাউন্ড সেট করা হয়েছে।");
+        }
+
         window.onload = function() {
             adjustFontSize();
             const saved = localStorage.getItem('savedTemplate');
-            const templateSrc = saved ? saved : "Janamt24/Card news bk.png";
+            const templateSrc = saved ? saved : "/Card news bk.png";
             
             const templateImg = document.getElementById('template-bg');
             templateImg.src = templateSrc;

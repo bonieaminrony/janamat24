@@ -139,6 +139,19 @@ export default function AdminCardGenerator() {
     }
   };
 
+  const handleTemplateReset = () => {
+    localStorage.removeItem("savedTemplate");
+    const defaultTemplate = "/Card news bk.png";
+    setTemplateSrc(defaultTemplate);
+    const img = new Image();
+    img.onload = () => {
+      const ratio = img.height / img.width;
+      setCardHeight(Math.round(800 * ratio));
+    };
+    img.src = defaultTemplate;
+    toast.success("টেম্পলেট রিসেট করা হয়েছে");
+  };
+
   // Handle News Image File Selection manually
   const handleNewsImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -463,6 +476,14 @@ export default function AdminCardGenerator() {
                   onChange={handleTemplateUpload}
                   className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:bg-slate-100/50 dark:hover:bg-slate-900 transition-colors"
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleTemplateReset}
+                  className="rounded-xl border-slate-200 dark:border-slate-800 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
+                >
+                  রিসেট
+                </Button>
               </div>
             </div>
 
