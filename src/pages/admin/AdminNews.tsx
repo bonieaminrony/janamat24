@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Pencil,
-  X
+  X,
+  Copy
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -74,6 +75,15 @@ export default function AdminNews() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const handleCopyLink = (slug: string) => {
+    const url = `${window.location.origin}/news/${slug}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "লিংক কপি করা হয়েছে",
+      description: "খবরের লিংকটি ক্লিপবোর্ডে কপি করা হয়েছে।"
+    });
+  };
 
   useEffect(() => {
     if (searchParams.get("create") === "true") {
@@ -280,6 +290,7 @@ export default function AdminNews() {
                      <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm" onClick={() => openEdit(n)}><Pencil className="w-4 h-4 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white" /></Button>
                      <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm" onClick={() => deleteMutation.mutate([n.id])}><Trash2 className="w-4 h-4 text-slate-400 dark:text-slate-500 hover:text-rose-500" /></Button>
                      <Button asChild size="icon" variant="ghost" className="h-9 w-9 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm"><a href={`/news/${n.slug}`} target="_blank"><Eye className="w-4 h-4 text-slate-400 dark:text-slate-500 hover:text-blue-500" /></a></Button>
+                     <Button size="icon" variant="ghost" className="h-9 w-9 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm" onClick={() => handleCopyLink(n.slug)} title="লিংক কপি করুন"><Copy className="w-4 h-4 text-slate-400 dark:text-slate-500 hover:text-emerald-500" /></Button>
                   </div>
                 </div>
                );
@@ -313,6 +324,7 @@ export default function AdminNews() {
                        <div className="flex gap-1.5">
                           <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 shadow-none hover:shadow-sm" onClick={() => openEdit(n)}><Pencil className="w-4 h-4 text-slate-500 dark:text-slate-400" /></Button>
                           <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 shadow-none hover:shadow-sm text-rose-500" onClick={() => deleteMutation.mutate([n.id])}><Trash2 className="w-4 h-4" /></Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 shadow-none hover:shadow-sm" onClick={() => handleCopyLink(n.slug)} title="লিংক কপি করুন"><Copy className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-emerald-500" /></Button>
                        </div>
                    </div>
                 </CardContent>
