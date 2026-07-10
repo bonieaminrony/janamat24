@@ -49,6 +49,7 @@ export function Header({ categories = [] }: HeaderProps) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [fullName, setFullName] = useState<string | null>(null);
 
   type HeaderMode = 'relative' | 'fixed_hidden' | 'fixed_visible';
   const [headerMode, setHeaderMode] = useState<HeaderMode>('relative');
@@ -158,15 +159,42 @@ export function Header({ categories = [] }: HeaderProps) {
       setIsAdmin(true);
     };
 
+    const fetchProfile = async (userId: string) => {
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (data && data.full_name) {
+          setFullName(data.full_name);
+        } else {
+          setFullName(null);
+        }
+      } catch (err) {
+        console.error("Error fetching profile name:", err);
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) checkAdmin(session.user.id);
+      if (session?.user) {
+        checkAdmin(session.user.id);
+        fetchProfile(session.user.id);
+      } else {
+        setFullName(null);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) checkAdmin(session.user.id);
-      else setIsAdmin(false);
+      if (session?.user) {
+        checkAdmin(session.user.id);
+        fetchProfile(session.user.id);
+      } else {
+        setIsAdmin(false);
+        setFullName(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -320,7 +348,7 @@ export function Header({ categories = [] }: HeaderProps) {
                      <DropdownMenu>
                        <DropdownMenuTrigger className="flex items-center gap-1 hover:text-[#e6222b] outline-none transition-colors">
                          <UserIcon className="w-4 h-4" />
-                         <span className="hidden sm:inline truncate max-w-[100px]">{user.email?.split('@')[0]}</span>
+                         <span className="hidden sm:inline truncate max-w-[100px]">{fullName || user.email?.split('@')[0]}</span>
                        </DropdownMenuTrigger>
                        <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 mt-1">
                          <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 truncate">
