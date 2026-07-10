@@ -756,16 +756,19 @@ export default function AdminCardGenerator() {
               {newsImageSrc ? (
                 <div
                   id="news-image"
-                  className="absolute left-[6.5%] w-[87%] bg-black z-[2]"
+                  className="absolute left-[6.5%] w-[87%] bg-black z-[2] overflow-hidden"
                   style={{ 
                     top: `${imageTop}%`, 
-                    height: `${imageHeight}%`,
-                    backgroundImage: `url(${newsImageSrc})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat"
+                    height: `${imageHeight}%`
                   }}
-                />
+                >
+                  <img
+                    src={newsImageSrc}
+                    alt="News"
+                    className="w-full h-full object-cover object-center"
+                    crossOrigin="anonymous"
+                  />
+                </div>
               ) : (
                 <div 
                   className="absolute left-[6.5%] w-[87%] bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 font-bold z-[2]"
