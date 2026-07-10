@@ -39,7 +39,7 @@ export function NewsTicker() {
               <Link
                 key={item.id}
                 to={`/news/${item.slug}`}
-                className="text-[14px] sm:text-[16px] font-bold text-slate-700 dark:text-slate-200 hover:text-primary transition-all flex items-center gap-3 group"
+                className="text-[15px] font-bold text-slate-700 dark:text-slate-200 hover:text-primary transition-all flex items-center gap-3 group"
               >
                 <span className="text-primary font-black opacity-30 group-hover:opacity-100">•</span>
                 {item.title}
@@ -50,7 +50,7 @@ export function NewsTicker() {
               <Link
                 key={`dup-${item.id}`}
                 to={`/news/${item.slug}`}
-                className="text-[14px] sm:text-[16px] font-bold text-slate-700 dark:text-slate-200 hover:text-primary transition-all flex items-center gap-3 group"
+                className="text-[15px] font-bold text-slate-700 dark:text-slate-200 hover:text-primary transition-all flex items-center gap-3 group"
               >
                 <span className="text-primary font-black opacity-30 group-hover:opacity-100">•</span>
                 {item.title}

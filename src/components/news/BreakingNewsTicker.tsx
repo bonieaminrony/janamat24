@@ -30,7 +30,7 @@ export function BreakingNewsTicker({ news }: BreakingNewsTickerProps) {
                 <div key={`${item.id}-${idx}`} className="flex items-center">
                   <Link 
                     to={`/news/${item.slug}`}
-                    className="px-4 text-[14px] font-bold text-slate-700 dark:text-slate-300 hover:text-accent dark:hover:text-white transition-colors hover:underline decoration-primary"
+                    className="px-4 text-[15px] font-bold text-slate-700 dark:text-slate-300 hover:text-accent dark:hover:text-white transition-colors hover:underline decoration-primary"
                   >
                     {item.title}
                   </Link>
