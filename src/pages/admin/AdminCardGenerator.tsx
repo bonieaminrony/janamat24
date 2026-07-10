@@ -74,6 +74,13 @@ export default function AdminCardGenerator() {
 
     setCardDate(initialBngDate);
 
+    // One-time migration to clear any old template containing text
+    const isCleared = localStorage.getItem("template_cleared_v2");
+    if (!isCleared) {
+      localStorage.removeItem("savedTemplate");
+      localStorage.setItem("template_cleared_v2", "true");
+    }
+
     // Load saved template or default
     const savedTemplate = localStorage.getItem("savedTemplate");
     const defaultTemplate = "/card-news-bg-default-v2.png";

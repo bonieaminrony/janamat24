@@ -454,6 +454,13 @@
 
         window.onload = function() {
             adjustFontSize();
+            // One-time migration to clear any old template containing text
+            const isCleared = localStorage.getItem("template_cleared_v2");
+            if (!isCleared) {
+                localStorage.removeItem("savedTemplate");
+                localStorage.setItem("template_cleared_v2", "true");
+            }
+
             const saved = localStorage.getItem('savedTemplate');
             const templateSrc = saved ? saved : "/card-news-bg-default-v2.png";
             
