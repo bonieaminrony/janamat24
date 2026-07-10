@@ -308,7 +308,7 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
   }, [title, content, imageUrl, categoryId]);
 
   return (
-    <div className="flex flex-col h-full bg-[#f8f9fb] dark:bg-slate-950 relative overflow-hidden font-sans">
+    <div className="flex flex-col h-full bg-[#FAF6F0] dark:bg-slate-950 relative overflow-hidden font-sans">
       {/* Editorial Header */}
       <div className="flex items-center justify-between px-6 py-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-[60] shadow-sm">
         <div className="flex items-center gap-12">

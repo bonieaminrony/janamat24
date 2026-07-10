@@ -334,7 +334,7 @@ export default function AdminNews() {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-[1500px] w-full lg:w-[98vw] h-full lg:h-[96vh] p-0 overflow-hidden lg:rounded-3xl border-slate-200 shadow-2xl bg-[#f8f9fb]">
+        <DialogContent className="max-w-[1500px] w-full lg:w-[98vw] h-full lg:h-[96vh] p-0 overflow-hidden lg:rounded-3xl border-slate-200 shadow-2xl bg-[#FAF6F0]">
             <DialogTitle className="sr-only">সংবাদ সম্পাদনা</DialogTitle>
             <NewsEditorForm 
               news={editingNews} 

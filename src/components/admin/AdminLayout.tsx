@@ -303,7 +303,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Content Area with Refined Background */}
-      <div className="flex-1 flex flex-col min-w-0 relative h-full bg-[#f8f9fb] dark:bg-slate-950">
+      <div className="flex-1 flex flex-col min-w-0 relative h-full bg-[#FAF6F0] dark:bg-slate-950">
         {/* Transparent Glassmorphic Header */}
         <header className="h-16 flex items-center justify-between px-4 lg:px-12 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-40">
           <div className="flex items-center gap-6">
