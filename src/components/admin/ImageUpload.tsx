@@ -124,11 +124,17 @@ export function ImageUpload({ value, onChange, bucket = "news-images" }: ImageUp
   return (
     <div className="space-y-6">
       <Tabs defaultValue="upload" className="w-full">
-        <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50 h-auto grid grid-cols-2">
-          <TabsTrigger value="upload" className="rounded-xl py-3 font-bold gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+        <TabsList className="bg-slate-100/50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 h-auto grid grid-cols-2">
+          <TabsTrigger 
+            value="upload" 
+            className="rounded-xl py-3 font-bold gap-2 text-slate-500 dark:text-slate-400 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm transition-all"
+          >
             <Upload className="w-4 h-4 shadow-sm" /> আপলোড
           </TabsTrigger>
-          <TabsTrigger value="url" className="rounded-xl py-3 font-bold gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+          <TabsTrigger 
+            value="url" 
+            className="rounded-xl py-3 font-bold gap-2 text-slate-500 dark:text-slate-400 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm transition-all"
+          >
             <LinkIcon className="w-4 h-4 shadow-sm" /> URL লিংক
           </TabsTrigger>
         </TabsList>
@@ -137,7 +143,9 @@ export function ImageUpload({ value, onChange, bucket = "news-images" }: ImageUp
           <div 
             className={cn(
               "group relative border-2 border-dashed rounded-[2.5rem] p-12 text-center transition-all duration-500 cursor-pointer overflow-hidden",
-              isDragOver ? "border-slate-900 bg-slate-50 scale-[0.98]" : "border-slate-200 hover:border-slate-400 hover:bg-slate-50/50",
+              isDragOver 
+                ? "border-slate-900 dark:border-slate-400 bg-slate-50 dark:bg-slate-800/50 scale-[0.98]" 
+                : "border-slate-200 dark:border-slate-700/60 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-50/50 dark:hover:bg-slate-800/20",
               uploading && "opacity-50 pointer-events-none"
             )}
             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -148,11 +156,11 @@ export function ImageUpload({ value, onChange, bucket = "news-images" }: ImageUp
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
             
             <div className="relative z-10 space-y-4">
-               <div className="w-20 h-20 bg-white shadow-xl rounded-3xl flex items-center justify-center mx-auto transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
-                  {uploading ? <Sparkles className="w-10 h-10 text-slate-900 animate-pulse" /> : <ImageIcon className="w-10 h-10 text-slate-400" />}
+               <div className="w-20 h-20 bg-white dark:bg-slate-800 shadow-xl rounded-3xl flex items-center justify-center mx-auto transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
+                  {uploading ? <Sparkles className="w-10 h-10 text-slate-900 dark:text-white animate-pulse" /> : <ImageIcon className="w-10 h-10 text-slate-400 dark:text-slate-500" />}
                </div>
                <div>
-                  <p className="text-xl font-black text-slate-900 tracking-tight">
+                  <p className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                     {uploading ? "আপলোড হচ্ছে..." : "ছবিটি এখানে টেনে আনুন"}
                   </p>
                   {!uploading && (
@@ -160,7 +168,7 @@ export function ImageUpload({ value, onChange, bucket = "news-images" }: ImageUp
                       অথবা ব্রাউজ করতে ক্লিক করুন
                     </p>
                   )}
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
+                  <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-2">
                     JPG, PNG, WEBP • ৫ এমবি সর্বোচ্চ
                   </p>
                </div>
@@ -177,9 +185,9 @@ export function ImageUpload({ value, onChange, bucket = "news-images" }: ImageUp
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               placeholder="https://example.com/image.jpg"
-              className="h-14 rounded-2xl bg-white border-slate-200 px-6 font-bold"
+              className="h-14 rounded-2xl bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 px-6 font-bold text-slate-900 dark:text-white"
             />
-            <Button type="button" onClick={() => onChange(urlInput)} className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black">
+            <Button type="button" onClick={() => onChange(urlInput)} className="h-14 px-8 rounded-2xl bg-slate-900 dark:bg-primary text-white dark:text-primary-foreground font-black">
               সেট করুন
             </Button>
           </div>
