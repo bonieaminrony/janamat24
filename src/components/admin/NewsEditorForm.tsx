@@ -318,8 +318,8 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
            <div className="space-y-1">
               <div className="flex items-center gap-4">
                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight leading-none">{editingId ? "সংবাদ সম্পাদনা" : "নতুন সংবাদ এন্ট্রি"}</h2>
-                 <div className="px-5 py-2 bg-emerald-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-2xl shadow-emerald-500/30">
-                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                 <div className="px-5 py-2 bg-emerald-500 text-white dark:text-primary-foreground rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-2xl shadow-emerald-500/30">
+                    <div className="w-2 h-2 rounded-full bg-white dark:bg-primary-foreground animate-pulse" />
                     লাইভ
                  </div>
               </div>
@@ -335,7 +335,7 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
 
         <div className="flex items-center gap-4">
            <Button variant="ghost" onClick={() => saveMutation.mutate('draft')} disabled={saveMutation.isPending || !title} className="h-10 px-6 rounded-xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700">খসড়া রাখুন</Button>
-           <Button onClick={handlePublish} disabled={saveMutation.isPending || !title} className="h-10 px-8 rounded-xl bg-primary text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex gap-2.5 border-0">
+           <Button onClick={handlePublish} disabled={saveMutation.isPending || !title} className="h-10 px-8 rounded-xl bg-primary text-white dark:text-primary-foreground font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex gap-2.5 border-0">
               {saveMutation.isPending ? <Sparkles className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               প্রকাশ করুন
            </Button>
@@ -373,7 +373,7 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
                             <Button
                               onClick={handleImportNews}
                               disabled={importing}
-                              className="rounded-xl px-6 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all active:scale-95 flex gap-2 shrink-0 border-0"
+                              className="rounded-xl px-6 h-11 bg-indigo-600 hover:bg-indigo-700 text-white dark:text-primary-foreground font-bold transition-all active:scale-95 flex gap-2 shrink-0 border-0"
                             >
                               {importing ? (
                                 <>
@@ -475,12 +475,12 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
                         </div>
 
                         <Card className="border border-slate-200/60 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
-                              <div className="p-6 bg-primary text-white flex items-center justify-between">
+                              <div className="p-6 bg-primary text-white dark:text-primary-foreground flex items-center justify-between">
                                   <div>
                                     <h3 className="text-lg font-black tracking-tight mb-1 flex items-center gap-2"><Settings2 className="w-5 h-5" /> পাবলিশিং কন্ট্রোল</h3>
-                                    <p className="text-[10px] text-white/60 font-black uppercase tracking-widest">কন্টেন্ট সেটিংস ও অ্যাড ইন্টিগ্রেশন</p>
+                                    <p className="text-[10px] text-white/60 dark:text-primary-foreground/60 font-black uppercase tracking-widest">কন্টেন্ট সেটিংস ও অ্যাড ইন্টিগ্রেশন</p>
                                   </div>
-                                  <div className="flex h-10 w-10 rounded-xl bg-white/10 items-center justify-center border border-white/10 shadow-inner"><Sparkles className="w-4 h-4 text-white" /></div>
+                                  <div className="flex h-10 w-10 rounded-xl bg-white/10 items-center justify-center border border-white/10 shadow-inner"><Sparkles className="w-4 h-4 text-white dark:text-primary-foreground" /></div>
                               </div>
                             <div className="p-8 space-y-8">
                                 <div className="flex items-center justify-between p-6 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
@@ -497,7 +497,7 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
 
                     <div className="flex items-center justify-end gap-4 pt-4 mt-6">
                        <Button variant="ghost" onClick={() => saveMutation.mutate('draft')} disabled={saveMutation.isPending || !title} className="h-12 px-6 rounded-xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">খসড়া রাখুন</Button>
-                       <Button onClick={handlePublish} disabled={saveMutation.isPending || !title} className="h-12 px-10 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex gap-2.5 border-0">
+                       <Button onClick={handlePublish} disabled={saveMutation.isPending || !title} className="h-12 px-10 rounded-xl bg-primary text-white dark:text-primary-foreground font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex gap-2.5 border-0">
                           {saveMutation.isPending ? <Sparkles className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                           প্রকাশ করুন
                        </Button>

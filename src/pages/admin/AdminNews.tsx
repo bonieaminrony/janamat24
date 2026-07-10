@@ -176,7 +176,7 @@ export default function AdminNews() {
         </div>
         <Button 
           onClick={() => { setEditingNews(null); setDialogOpen(true); }} 
-          className="h-11 px-6 rounded-xl bg-primary hover:opacity-90 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95 gap-2 border-0"
+          className="h-11 px-6 rounded-xl bg-primary hover:opacity-90 text-white dark:text-primary-foreground font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95 gap-2 border-0"
         >
           <Plus className="w-4 h-4" /> সংবাদ যোগ করুন
         </Button>
@@ -231,7 +231,7 @@ export default function AdminNews() {
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-bottom-20 duration-500 w-full max-w-lg px-4">
           <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-2xl flex items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-               <div className="bg-primary text-white w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs">
+               <div className="bg-primary text-white dark:text-primary-foreground w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs">
                  {toBanglaNumber(selectedIds.size)}
                </div>
                <p className="font-black text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">সংবাদ নির্বাচিত</p>
