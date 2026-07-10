@@ -475,12 +475,12 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
                         </div>
 
                         <Card className="border border-slate-200/60 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
-                              <div className="p-6 bg-primary text-white dark:text-primary-foreground flex items-center justify-between">
+                              <div className="p-6 bg-slate-900 text-white dark:bg-slate-950 flex items-center justify-between">
                                   <div>
-                                    <h3 className="text-lg font-black tracking-tight mb-1 flex items-center gap-2"><Settings2 className="w-5 h-5" /> পাবলিশিং কন্ট্রোল</h3>
-                                    <p className="text-[10px] text-white/60 dark:text-primary-foreground/60 font-black uppercase tracking-widest">কন্টেন্ট সেটিংস ও অ্যাড ইন্টিগ্রেশন</p>
+                                    <h3 className="text-lg font-black tracking-tight mb-1 flex items-center gap-2 text-white"><Settings2 className="w-5 h-5" /> পাবলিশিং কন্ট্রোল</h3>
+                                    <p className="text-[10px] text-white/60 font-black uppercase tracking-widest">কন্টেন্ট সেটিংস ও অ্যাড ইন্টিগ্রেশন</p>
                                   </div>
-                                  <div className="flex h-10 w-10 rounded-xl bg-white/10 items-center justify-center border border-white/10 shadow-inner"><Sparkles className="w-4 h-4 text-white dark:text-primary-foreground" /></div>
+                                  <div className="flex h-10 w-10 rounded-xl bg-white/10 items-center justify-center border border-white/10 shadow-inner"><Sparkles className="w-4 h-4 text-white" /></div>
                               </div>
                             <div className="p-8 space-y-8">
                                 <div className="flex items-center justify-between p-6 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
