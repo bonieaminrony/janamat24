@@ -110,22 +110,22 @@ export function FeaturedNews({ news }: FeaturedNewsProps) {
                 {leadNews.title}
               </h2>
               
-              {(() => {
-                const displayExcerpt = leadNews.excerpt || (leadNews.content ? leadNews.content.replace(/<[^>]+>/g, '').substring(0, 300) : null);
-                return displayExcerpt ? (
-                  <p className="text-foreground text-[1.1rem] leading-[1.65] line-clamp-3 mb-4 font-normal">
-                    {displayExcerpt}
-                  </p>
-                ) : null;
-              })()}
-              
-              <div className="flex items-center gap-3 text-sm font-bold text-muted-foreground">
+              <div className="flex items-center gap-3 text-sm font-bold text-muted-foreground mb-4">
                 <span className="text-accent uppercase tracking-wider">
                   {getCategory(leadNews)?.name || "শীর্ষ সংবাদ"}
                 </span>
                 <span className="w-1 h-1 rounded-full bg-border" />
                 <span>{formatBanglaRelativeTime(leadNews.published_at)}</span>
               </div>
+
+              {(() => {
+                const displayExcerpt = leadNews.excerpt || (leadNews.content ? leadNews.content.replace(/<[^>]+>/g, '').substring(0, 300) : null);
+                return displayExcerpt ? (
+                  <p className="text-foreground text-[1.1rem] leading-[1.65] line-clamp-3 font-normal">
+                    {displayExcerpt}
+                  </p>
+                ) : null;
+              })()}
            </Link>
 
            {/* Sub-leads directly below the main lead */}

@@ -11,6 +11,8 @@ import { Pencil, Trash2, Megaphone, Settings, Send, Image as ImageIcon } from "l
 import { AdMediaUpload } from "@/components/admin/AdMediaUpload";
 import { sanitizeLinkUrl } from "@/lib/url-utils";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const PLACEMENTS = [
   { value: "header", label: "১. একদম উপরে (লোগোর ডানপাশে)", type: "wide" },
@@ -34,7 +36,7 @@ export default function AdminAdPartners() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [companyLogo, setCompanyLogo] = useState("");
   const [adType, setAdType] = useState("single_image");
-  const [placementType, setPlacementType] = useState("");
+  const [placementTypes, setPlacementTypes] = useState<string[]>([]);
   
   const [imageUrl, setImageUrl] = useState("");
   const [imageUrl2, setImageUrl2] = useState("");
@@ -104,9 +106,30 @@ export default function AdminAdPartners() {
         finalLinkUrl = JSON.stringify([linkUrl || "", linkUrl2 || "", linkUrl3 || ""]);
       }
 
+      // Map UI placement values to database allowed values to bypass check constraint
+      const dbPlacementTypeMap: Record<string, string> = {
+        header: "header",
+        in_article: "in_article",
+        sidebar: "sidebar",
+        featured_news_inline: "in_article",
+        article_inline: "in_article",
+        article_related: "in_article",
+        article_side: "sidebar",
+        quran_top_banner: "header",
+        quran_side_square: "sidebar",
+        article_bottom: "footer",
+        footer: "footer",
+        related_news_inline: "sidebar"
+      };
+
+      const firstPlacement = placementTypes[0] || "header";
+      const dbPlacementType = dbPlacementTypeMap[firstPlacement] || firstPlacement;
+      const serializedPlacements = JSON.stringify(placementTypes);
+
       const bannerData = {
         partner_id: partnerId,
-        placement_type: placementType,
+        placement_type: dbPlacementType,
+        alt_text: serializedPlacements, // Store all selected UI placement types
         image_url: finalImageUrl,
         link_url: finalLinkUrl,
         is_active: isActive
@@ -146,7 +169,7 @@ export default function AdminAdPartners() {
     setWebsiteUrl("");
     setCompanyLogo("");
     setAdType("single_image");
-    setPlacementType("");
+    setPlacementTypes([]);
     setImageUrl("");
     setImageUrl2("");
     setImageUrl3("");
@@ -161,7 +184,24 @@ export default function AdminAdPartners() {
   const handleEdit = (b: any) => {
     setEditingId(b.id);
     setPartnerName(b.partner_name || b.title || "");
-    setPlacementType(b.placement_type);
+    
+    // Parse placements from alt_text or fallback to placement_type
+    let initialPlacements: string[] = [];
+    if (b.alt_text) {
+      if (b.alt_text.startsWith('[') && b.alt_text.endsWith(']')) {
+        try {
+          initialPlacements = JSON.parse(b.alt_text);
+        } catch (e) {
+          initialPlacements = [b.alt_text];
+        }
+      } else {
+        initialPlacements = b.alt_text.split(',').map((p: string) => p.trim());
+      }
+    } else if (b.placement_type) {
+      initialPlacements = [b.placement_type];
+    }
+    setPlacementTypes(initialPlacements);
+
     setIsActive(b.is_active);
     setCompanyLogo(b.company_logo || "");
     setSubtitle(b.subtitle || "");
@@ -204,6 +244,21 @@ export default function AdminAdPartners() {
     return b.image_url;
   };
 
+  const getBannerPlacements = (banner: any): string[] => {
+    if (banner.alt_text) {
+      if (banner.alt_text.startsWith('[') && banner.alt_text.endsWith(']')) {
+        try {
+          return JSON.parse(banner.alt_text);
+        } catch (e) {
+          return [banner.alt_text];
+        }
+      } else {
+        return banner.alt_text.split(',').map((p: string) => p.trim());
+      }
+    }
+    return [banner.placement_type];
+  };
+
   return (
     <div className="space-y-6 pb-20 max-w-[1200px] mx-auto animate-in fade-in duration-500">
       
@@ -216,7 +271,7 @@ export default function AdminAdPartners() {
            </div>
            {editingId && (
              <Button variant="ghost" size="sm" onClick={resetForm} className="text-rose-500 hover:text-rose-600 hover:bg-rose-50">
-               বাতিল করুন
+                বাতিল করুন
              </Button>
            )}
         </div>
@@ -226,7 +281,7 @@ export default function AdminAdPartners() {
              <div className="space-y-2">
                 <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">অ্যাড টাইপ</Label>
                 <Select value={adType} onValueChange={setAdType}>
-                   <SelectTrigger className="h-11 rounded-lg border-slate-200 dark:border-slate-800 bg-transparent">
+                   <SelectTrigger className="h-11 rounded-lg border-slate-200 dark:border-slate-800 bg-transparent text-slate-800 dark:text-slate-200">
                       <SelectValue placeholder="অ্যাড টাইপ নির্বাচন করুন" />
                    </SelectTrigger>
                    <SelectContent>
@@ -236,17 +291,51 @@ export default function AdminAdPartners() {
                 </Select>
              </div>
              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">অবস্থান (Position)</Label>
-                <Select value={placementType} onValueChange={setPlacementType}>
-                   <SelectTrigger className="h-11 rounded-lg border-slate-200 dark:border-slate-800 bg-transparent">
-                      <SelectValue placeholder="অবস্থান নির্বাচন করুন" />
-                   </SelectTrigger>
-                   <SelectContent>
-                      {PLACEMENTS.map(p => (
-                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                      ))}
-                   </SelectContent>
-                </Select>
+                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">অবস্থান (Position) - একাধিক সিলেক্ট করতে পারেন</Label>
+                <Popover>
+                   <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full h-11 justify-between text-left font-normal border-slate-200 dark:border-slate-800 bg-transparent hover:bg-transparent text-slate-800 dark:text-slate-200">
+                         <span className="truncate">
+                            {placementTypes.length === 0 
+                              ? "অবস্থান নির্বাচন করুন" 
+                              : placementTypes.map(val => PLACEMENTS.find(p => p.value === val)?.label.replace(/^\d+\.\s*/, '')).join(", ")
+                            }
+                         </span>
+                         <span className="text-xs text-muted-foreground ml-2 shrink-0">▼</span>
+                      </Button>
+                   </PopoverTrigger>
+                   <PopoverContent className="w-[350px] p-4 space-y-3 max-h-[400px] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md" align="start">
+                      <div className="font-bold text-xs text-slate-500 uppercase tracking-wider mb-2">বিজ্ঞাপনের অবস্থানসমূহ</div>
+                      <div className="space-y-2.5">
+                         {PLACEMENTS.map((p) => {
+                            const isChecked = placementTypes.includes(p.value);
+                            const handleToggle = (checked: boolean) => {
+                              if (checked) {
+                                setPlacementTypes([...placementTypes, p.value]);
+                              } else {
+                                setPlacementTypes(placementTypes.filter(val => val !== p.value));
+                              }
+                            };
+                            return (
+                               <div key={p.value} className="flex items-start gap-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 p-1.5 rounded-md transition-colors">
+                                  <Checkbox 
+                                     id={`placement-${p.value}`} 
+                                     checked={isChecked} 
+                                     onCheckedChange={(checked) => handleToggle(!!checked)}
+                                     className="mt-0.5"
+                                  />
+                                  <label 
+                                     htmlFor={`placement-${p.value}`}
+                                     className="text-sm font-medium leading-tight cursor-pointer text-slate-700 dark:text-slate-300 select-none"
+                                  >
+                                     {p.label}
+                                  </label>
+                               </div>
+                            );
+                         })}
+                      </div>
+                   </PopoverContent>
+                </Popover>
              </div>
           </div>
 
@@ -260,8 +349,8 @@ export default function AdminAdPartners() {
                  <AdMediaUpload 
                    value={imageUrl} 
                    onChange={setImageUrl} 
-                   requiredWidth={placementType.includes('side') || placementType.includes('square') ? 400 : 800} 
-                   requiredHeight={placementType.includes('side') || placementType.includes('square') ? 400 : 200} 
+                   requiredWidth={placementTypes.some(p => p.includes('side') || p.includes('square')) ? 400 : 800} 
+                   requiredHeight={placementTypes.some(p => p.includes('side') || p.includes('square')) ? 400 : 200} 
                    placementLabel="Banner" 
                  />
                  <div className="pt-2">
@@ -269,7 +358,7 @@ export default function AdminAdPartners() {
                       value={imageUrl} 
                       onChange={e => setImageUrl(e.target.value)} 
                       placeholder="অথবা সরাসরি ছবির ইউআরএল (URL) দিন..." 
-                      className="h-10 text-sm bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                      className="h-10 text-sm bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200"
                     />
                  </div>
               </div>
@@ -277,11 +366,11 @@ export default function AdminAdPartners() {
               <div className="grid md:grid-cols-2 gap-6">
                  <div className="space-y-2">
                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">বিজ্ঞাপনের শিরোনাম (কোম্পানি নাম)</Label>
-                   <Input value={partnerName} onChange={e => setPartnerName(e.target.value)} className="h-11 rounded-lg bg-transparent border-slate-200 dark:border-slate-800" placeholder="এখানে কোম্পানি নাম" />
+                   <Input value={partnerName} onChange={e => setPartnerName(e.target.value)} className="h-11 rounded-lg bg-transparent border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200" placeholder="এখানে কোম্পানি নাম" />
                  </div>
                  <div className="space-y-2">
                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">ল্যান্ডিং পেজ লিংক (URL)</Label>
-                   <Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} className="h-11 rounded-lg bg-transparent border-slate-200 dark:border-slate-800" placeholder="https://example.com" />
+                   <Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} className="h-11 rounded-lg bg-transparent border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200" placeholder="https://example.com" />
                  </div>
               </div>
             </>
@@ -297,17 +386,17 @@ export default function AdminAdPartners() {
                   {/* Image 1 */}
                   <div className="space-y-3">
                      <AdMediaUpload value={imageUrl} onChange={setImageUrl} requiredWidth={400} requiredHeight={400} placementLabel="ছবি ১" />
-                     <Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} className="h-11 rounded-lg bg-white dark:bg-slate-950 border-slate-200" placeholder="লিংক ১" />
+                     <Input value={linkUrl} onChange={e => setLinkUrl(e.target.value)} className="h-11 rounded-lg bg-white dark:bg-slate-950 border-slate-200 text-slate-800 dark:text-slate-200" placeholder="লিংক ১" />
                   </div>
                   {/* Image 2 */}
                   <div className="space-y-3">
                      <AdMediaUpload value={imageUrl2} onChange={setImageUrl2} requiredWidth={400} requiredHeight={400} placementLabel="ছবি ২" />
-                     <Input value={linkUrl2} onChange={e => setLinkUrl2(e.target.value)} className="h-11 rounded-lg bg-white dark:bg-slate-950 border-slate-200" placeholder="লিংক ২" />
+                     <Input value={linkUrl2} onChange={e => setLinkUrl2(e.target.value)} className="h-11 rounded-lg bg-white dark:bg-slate-950 border-slate-200 text-slate-800 dark:text-slate-200" placeholder="লিংক ২" />
                   </div>
                   {/* Image 3 */}
                   <div className="space-y-3">
                      <AdMediaUpload value={imageUrl3} onChange={setImageUrl3} requiredWidth={400} requiredHeight={400} placementLabel="ছবি ৩" />
-                     <Input value={linkUrl3} onChange={e => setLinkUrl3(e.target.value)} className="h-11 rounded-lg bg-white dark:bg-slate-950 border-slate-200" placeholder="লিংক ৩" />
+                     <Input value={linkUrl3} onChange={e => setLinkUrl3(e.target.value)} className="h-11 rounded-lg bg-white dark:bg-slate-950 border-slate-200 text-slate-800 dark:text-slate-200" placeholder="লিংক ৩" />
                   </div>
                 </div>
               </div>
@@ -315,32 +404,29 @@ export default function AdminAdPartners() {
               <div className="grid md:grid-cols-2 gap-6 pt-4">
                  <div className="space-y-2">
                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">বিজ্ঞাপনের শিরোনাম (কোম্পানি নাম)</Label>
-                   <Input value={partnerName} onChange={e => setPartnerName(e.target.value)} className="h-11 rounded-lg bg-transparent border-slate-200 dark:border-slate-800" placeholder="যেমন: এনসিসি ব্যাংক" />
+                   <Input value={partnerName} onChange={e => setPartnerName(e.target.value)} className="h-11 rounded-lg bg-transparent border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200" placeholder="যেমন: এনসিসি ব্যাংক" />
                  </div>
-                 {/* Only title is needed here for Triple, link is already inside the grid */}
               </div>
             </>
           )}
-
-          {/* Removed old triple ad block as it is now integrated above */}
 
           <div className="grid md:grid-cols-2 gap-6">
              <div className="space-y-2">
                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">কোম্পানি লোগো (ঐচ্ছিক)</Label>
                <div className="flex gap-2">
-                  <Input value={companyLogo} onChange={e => setCompanyLogo(e.target.value)} className="h-11 rounded-lg bg-transparent border-slate-200 dark:border-slate-800" placeholder="লোগোর ইউআরএল..." />
+                  <Input value={companyLogo} onChange={e => setCompanyLogo(e.target.value)} className="h-11 rounded-lg bg-transparent border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200" placeholder="লোগোর ইউআরএল..." />
                </div>
              </div>
              <div className="space-y-2">
                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">সাব-টাইটেল / স্লোগান (ঐচ্ছিক)</Label>
-               <Input value={subtitle} onChange={e => setSubtitle(e.target.value)} className="h-11 rounded-lg bg-transparent border-slate-200 dark:border-slate-800" placeholder="এখানে সাব-টাইটেল বা স্লোগান যুক্ত করুন" />
+               <Input value={subtitle} onChange={e => setSubtitle(e.target.value)} className="h-11 rounded-lg bg-transparent border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200" placeholder="এখানে সাব-টাইটেল বা স্লোগান যুক্ত করুন" />
              </div>
           </div>
 
           <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
              <Button 
                onClick={() => saveMutation.mutate()} 
-               disabled={saveMutation.isPending || !partnerName || !placementType || !imageUrl} 
+               disabled={saveMutation.isPending || !partnerName || placementTypes.length === 0 || !imageUrl} 
                className="h-12 px-8 rounded-lg bg-[#E31E24] hover:bg-red-700 text-white font-bold tracking-wide shadow-md flex items-center gap-2 uppercase"
              >
                <Send className="w-4 h-4" />
@@ -381,7 +467,16 @@ export default function AdminAdPartners() {
                             <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm mb-1 truncate max-w-[200px] sm:max-w-[300px]">{banner.partner_name || "Unknown"}</h3>
                             <div className="flex gap-2">
                                <Badge variant="outline" className="text-[9px] text-blue-600 border-blue-200 bg-blue-50 px-1.5 py-0 uppercase">{bannerTypeStr}</Badge>
-                               <Badge variant="outline" className="text-[9px] text-slate-600 border-slate-200 bg-slate-50 px-1.5 py-0 uppercase">{banner.placement_type.replace('_', '.')}</Badge>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                               {getBannerPlacements(banner).map((pVal) => {
+                                 const label = PLACEMENTS.find(p => p.value === pVal)?.label || pVal;
+                                 return (
+                                   <Badge key={pVal} variant="outline" className="text-[9px] text-slate-600 border-slate-200 bg-slate-50 px-1.5 py-0">
+                                     {label.replace(/^\d+\.\s*/, '')}
+                                   </Badge>
+                                 );
+                               })}
                             </div>
                          </div>
                       </div>
@@ -390,7 +485,7 @@ export default function AdminAdPartners() {
                          <Button 
                            variant="outline" 
                            size="sm" 
-                           className="h-8 text-xs font-semibold text-rose-500 border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                           className="h-8 text-xs font-semibold text-rose-500 border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700"
                            onClick={() => handleEdit(banner)}
                          >
                             <Pencil className="w-3 h-3 mr-1" /> এডিট করুন
@@ -398,7 +493,7 @@ export default function AdminAdPartners() {
                          <Button 
                            variant="outline" 
                            size="sm" 
-                           className="h-8 text-xs font-semibold text-rose-500 border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                           className="h-8 text-xs font-semibold text-rose-500 border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700"
                            onClick={() => {
                              if (confirm("বিজ্ঞাপনটি মুছবেন?")) {
                                deleteBannerMutation.mutate(banner.id);

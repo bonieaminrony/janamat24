@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Upload, Link, Loader2, Settings2, Calendar, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Download, Upload, Link, Loader2, Settings2, Calendar, RefreshCw, ChevronDown, ChevronUp, Facebook } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 // Extend window interface for html2canvas
 declare global {
@@ -18,6 +20,7 @@ const preserveSpaces = (text: string) => text.replace(/ /g, "\u00A0");
 
 export default function AdminCardGenerator() {
   const { toast } = useToast();
+  const { settings } = useSiteSettings();
   const [templateSrc, setTemplateSrc] = useState<string>("");
   const [newsImageSrc, setNewsImageSrc] = useState<string>("");
   const [newsUrl, setNewsUrl] = useState<string>("");
@@ -37,7 +40,10 @@ export default function AdminCardGenerator() {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [downloading, setDownloading] = useState<boolean>(false);
+  const [sharing, setSharing] = useState<boolean>(false);
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
+
+
 
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardHeight, setCardHeight] = useState<number>(1000);
@@ -457,6 +463,175 @@ export default function AdminCardGenerator() {
     }, 100);
   };
 
+  // Upload Card to Supabase Storage and Share/Upload to Facebook via Web Share Dialog
+  const shareToFacebook = () => {
+    if (!templateSrc) {
+      toast({
+        variant: "destructive",
+        title: "ত্রুটি",
+        description: "দয়া করে প্রথমে একটি টেমপ্লেট ছবি আপলোড করুন।"
+      });
+      return;
+    }
+
+    if (!window.html2canvas) {
+      toast({
+        variant: "destructive",
+        title: "ত্রুটি",
+        description: "html2canvas স্ক্রিপ্টটি লোড হতে পারেনি। অনুগ্রহ করে রিফ্রেশ করে আবার চেষ্টা করুন।"
+      });
+      return;
+    }
+
+    setSharing(true);
+    
+    // Select the card-preview element
+    const preview = cardRef.current;
+    if (!preview) {
+      setSharing(false);
+      return;
+    }
+
+    // Clone the element to prevent html2canvas from reading CSS scale/transform styles
+    const clone = preview.cloneNode(true) as HTMLDivElement;
+    
+    // Hide the clone off-screen and remove CSS transforms
+    clone.style.position = "fixed";
+    clone.style.top = "-9999px";
+    clone.style.left = "-9999px";
+    clone.style.transform = "none";
+    clone.style.width = "800px";
+    clone.style.height = `${cardHeight}px`;
+    
+    document.body.appendChild(clone);
+
+    // Wait slightly for DOM to settle
+    setTimeout(() => {
+      window.html2canvas(clone, {
+        useCORS: true,
+        allowTaint: true,
+        scale: 2 // High resolution output
+      })
+        .then(async (canvas: HTMLCanvasElement) => {
+          document.body.removeChild(clone);
+          
+          canvas.toBlob(async (blob) => {
+            if (!blob) {
+              setSharing(false);
+              toast({
+                variant: "destructive",
+                title: "ত্রুটি",
+                description: "ইমেজ তৈরি করতে সমস্যা হয়েছে।"
+              });
+              return;
+            }
+
+            const timestamp = Date.now();
+            const caption = `${headline1}\n${preserveSpaces(headline2Blue)} ${preserveSpaces(headline2Red)}`.trim();
+            const hasFbCredentials = settings?.fb_page_id && settings?.fb_access_token;
+
+            if (hasFbCredentials) {
+              // 1-Click Direct Posting to Facebook Page
+              try {
+                const formData = new FormData();
+                formData.append("source", blob, `card-${timestamp}.jpg`);
+                formData.append("message", caption);
+                formData.append("access_token", settings.fb_access_token!);
+
+                const response = await fetch(`https://graph.facebook.com/v18.0/${settings.fb_page_id}/photos`, {
+                  method: "POST",
+                  body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                  throw new Error(result.error.message || "Facebook Graph API Error");
+                }
+
+                const postId = result.post_id || result.id;
+                const postUrl = `https://facebook.com/${postId}`;
+
+                toast({
+                  title: "ফেসবুকে সফলভাবে পোস্ট করা হয়েছে! 🎉",
+                  description: (
+                    <div className="flex flex-col gap-1.5 mt-1">
+                      <p className="text-xs">কার্ডটি সরাসরি আপনার ফেসবুক পেজে পোস্ট করা হয়েছে।</p>
+                      <a 
+                        href={postUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-xs font-black text-blue-600 dark:text-blue-400 underline hover:opacity-85 flex items-center gap-1 mt-1"
+                      >
+                        ফেসবুক পোস্টটি দেখতে এখানে ক্লিক করুন 🔗
+                      </a>
+                    </div>
+                  ),
+                  duration: 10000
+                });
+              } catch (err: any) {
+                console.error("Facebook direct upload failed:", err);
+                toast({
+                  variant: "destructive",
+                  title: "পোস্ট ব্যর্থ হয়েছে",
+                  description: `সরাসরি পেজে আপলোড করতে সমস্যা হয়েছে: ${err.message}`
+                });
+              } finally {
+                setSharing(false);
+              }
+            } else {
+              // Fallback to Supabase upload + facebook sharer window
+              const fileName = `generated-cards/card-${timestamp}.jpg`;
+              const file = new File([blob], `janamat24-card-${timestamp}.jpg`, { type: "image/jpeg" });
+
+              try {
+                const { data, error } = await supabase.storage
+                  .from("news-images")
+                  .upload(fileName, file, {
+                    contentType: "image/jpeg",
+                    cacheControl: "3600",
+                    upsert: true
+                  });
+
+                if (error) throw error;
+
+                const { data: { publicUrl } } = supabase.storage
+                  .from("news-images")
+                  .getPublicUrl(fileName);
+
+                const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(publicUrl)}`;
+                window.open(fbShareUrl, "_blank", "width=600,height=450,noopener,noreferrer");
+
+                toast({
+                  title: "ফেসবুক শেয়ার উইন্ডো ওপেন হয়েছে 🔵",
+                  description: "ব্রাউজারে লগইন থাকা ফেসবুক আইডি/পেজ থেকে ইমেজটি শেয়ার করুন। সরাসরি ১-ক্লিকে অটো-পোস্ট করতে এডমিন সেটিংসে পেজ টোকেন দিন।"
+                });
+              } catch (err: any) {
+                console.error("Facebook share failed:", err);
+                toast({
+                  variant: "destructive",
+                  title: "শেয়ার ব্যর্থ",
+                  description: `ফেসবুকে শেয়ার করতে সমস্যা হয়েছে: ${err.message}`
+                });
+              } finally {
+                setSharing(false);
+              }
+            }
+          }, "image/jpeg", 0.9);
+        })
+        .catch((err: any) => {
+          console.error("Canvas generation error:", err);
+          document.body.removeChild(clone);
+          toast({
+            variant: "destructive",
+            title: "ত্রুটি",
+            description: "ইমেজ তৈরি করার সময় কোনো ত্রুটি ঘটেছে।"
+          });
+          setSharing(false);
+        });
+    }, 100);
+  };
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start max-w-7xl mx-auto">
       {/* Control Box */}
@@ -524,19 +699,36 @@ export default function AdminCardGenerator() {
               </div>
             </div>
 
-            {/* Download Button */}
-            <Button
-              onClick={downloadCard}
-              disabled={downloading}
-              className="w-full h-13 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base transition-all active:scale-95 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-            >
-              {downloading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Download className="w-5 h-5" />
-              )}
-              কার্ড ডাউনলোড করুন (JPEG) 📥
-            </Button>
+            {/* Download & Share Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button
+                onClick={downloadCard}
+                disabled={downloading || sharing}
+                className="w-full h-13 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base transition-all active:scale-95 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                {downloading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Download className="w-5 h-5" />
+                )}
+                ডাউনলোড করুন (JPEG) 📥
+              </Button>
+
+              <Button
+                onClick={shareToFacebook}
+                disabled={downloading || sharing}
+                className="w-full h-13 rounded-2xl bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold text-base transition-all active:scale-95 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                {sharing ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Facebook className="w-5 h-5 fill-current" />
+                )}
+                {settings?.fb_page_id && settings?.fb_access_token 
+                  ? "ফেসবুকে সরাসরি পোস্ট (১-ক্লিক) ⚡" 
+                  : "ফেসবুকে শেয়ার করুন 🔵"}
+              </Button>
+            </div>
 
             {/* Toggle Advanced Controls */}
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800">

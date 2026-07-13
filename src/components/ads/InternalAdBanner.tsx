@@ -11,6 +11,7 @@ interface InternalAdBannerProps {
   newsId?: string;
   className?: string;
   index?: number;
+  style?: React.CSSProperties;
 }
 
 interface AdBanner {
@@ -67,7 +68,26 @@ async function trackAdClick(bannerId: string, placement: PlacementType, newsId?:
   }
 }
 
-export function InternalAdBanner({ placement, newsId, className, index }: InternalAdBannerProps) {
+const isPlacementMatched = (banner: any, targetPlacement: string): boolean => {
+  const rawAltText = banner.alt_text;
+  if (rawAltText) {
+    if (rawAltText.startsWith("[") && rawAltText.endsWith("]")) {
+      try {
+        const placements = JSON.parse(rawAltText);
+        if (Array.isArray(placements)) {
+          return placements.includes(targetPlacement);
+        }
+      } catch (e) {
+        // Fallback on JSON error
+      }
+    }
+    const list = rawAltText.split(",").map((p: string) => p.trim());
+    if (list.includes(targetPlacement)) return true;
+  }
+  return banner.placement_type === targetPlacement || rawAltText === targetPlacement;
+};
+
+export function InternalAdBanner({ placement, newsId, className, index, style }: InternalAdBannerProps) {
   const { data: banners = [], isLoading } = useQuery({
     queryKey: ["internal-ads", placement, newsId],
     queryFn: async () => {
@@ -95,16 +115,6 @@ export function InternalAdBanner({ placement, newsId, className, index }: Intern
 
         if (error) throw error;
 
-        // Map current exact placements to legacy placements so old ads still show up
-        const legacyMap: Record<string, string[]> = {
-          header: ["header", "home_page_top"],
-          sidebar: ["sidebar", "home_page_middle"],
-          in_article: ["in_article", "home_column_center", "home_feed", "featured_news_inline"],
-          article_inline: ["article_inline", "in_article", "home_column_center", "home_feed", "featured_news_inline"],
-          article_side: ["article_side", "sidebar", "home_page_middle"],
-        };
-        const targetPlacements = legacyMap[placement] || [placement];
-
         // Filter banners by placement and active status
         const filteredBanners: AdBanner[] = [];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -112,7 +122,7 @@ export function InternalAdBanner({ placement, newsId, className, index }: Intern
           if (nap.ad_partners?.is_active) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             nap.ad_partners.ad_banners?.forEach((banner: any) => {
-              if (targetPlacements.includes(banner.placement_type) && banner.is_active) {
+              if (banner.is_active && isPlacementMatched(banner, placement)) {
                 filteredBanners.push({
                   id: banner.id,
                   image_url: banner.image_url,
@@ -131,18 +141,7 @@ export function InternalAdBanner({ placement, newsId, className, index }: Intern
         return filteredBanners;
       }
 
-      // Map current exact placements to legacy placements so old ads still show up
-      const legacyMap: Record<string, string[]> = {
-        header: ["header", "home_page_top"],
-        sidebar: ["sidebar", "home_page_middle"],
-        in_article: ["in_article", "home_column_center", "home_feed", "featured_news_inline"],
-        article_inline: ["article_inline", "in_article", "home_column_center", "home_feed", "featured_news_inline"],
-        article_side: ["article_side", "sidebar", "home_page_middle"],
-      };
-      
-      const targetPlacements = legacyMap[placement] || [placement];
-
-      // If no newsId, get all active banners for this placement
+      // If no newsId, get all active banners
       const { data, error } = await supabase
         .from("ad_banners")
         .select(`
@@ -150,21 +149,26 @@ export function InternalAdBanner({ placement, newsId, className, index }: Intern
           image_url,
           link_url,
           alt_text,
+          placement_type,
+          is_active,
           ad_partners!inner (
             id,
             name,
             is_active
           )
         `)
-        .in("placement_type", targetPlacements)
         .eq("is_active", true);
 
       if (error) throw error;
 
-      // Filter for active partners
+      // Filter for active partners and match exact placement
       return (data || [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((banner: any) => banner.ad_partners?.is_active)
+        .filter((banner: any) => {
+          const isActive = banner.ad_partners?.is_active;
+          if (!isActive) return false;
+          return isPlacementMatched(banner, placement);
+        })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((banner: any) => ({
           id: banner.id,
@@ -174,7 +178,7 @@ export function InternalAdBanner({ placement, newsId, className, index }: Intern
           ad_partners: banner.ad_partners,
         })) as AdBanner[];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    staleTime: 10 * 1000, // 10 seconds cache
   });
 
   // Rotation logic
@@ -244,12 +248,12 @@ export function InternalAdBanner({ placement, newsId, className, index }: Intern
     }
 
     return (
-      <div className={cn("w-full flex flex-col gap-4 py-4 box-border relative", placementStyles[placement], className)}>
+      <div className={cn("w-full flex flex-col gap-4 py-4 box-border relative", placementStyles[placement], className)} style={style}>
         <span className="absolute top-0 right-0 bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-bl-lg rounded-tr-xl z-10 uppercase tracking-widest">
           Sponsored
         </span>
         
-        <div className="flex w-full gap-4 h-64 md:h-80 lg:h-96">
+        <div className="flex w-full gap-3 h-36 md:h-44 lg:h-52">
           <div className="w-1/2 h-full">
             {links[0] && sanitizeLinkUrl(links[0]) !== '#' ? (
               <a href={sanitizeLinkUrl(links[0])} target="_blank" rel="noopener noreferrer sponsored" className="block w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
@@ -260,8 +264,8 @@ export function InternalAdBanner({ placement, newsId, className, index }: Intern
             )}
           </div>
           
-          <div className="w-1/2 flex flex-col gap-4 h-full">
-            <div className="w-full h-[calc(50%-0.5rem)]">
+          <div className="w-1/2 flex flex-col gap-3 h-full">
+            <div className="w-full h-[calc(50%-0.375rem)]">
               {links[1] && sanitizeLinkUrl(links[1]) !== '#' ? (
                 <a href={sanitizeLinkUrl(links[1])} target="_blank" rel="noopener noreferrer sponsored" className="block w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
                   <img src={images[1] || images[0]} alt="Ad 2" className="w-full h-full object-cover rounded-xl" loading="lazy" />
@@ -271,7 +275,7 @@ export function InternalAdBanner({ placement, newsId, className, index }: Intern
               )}
             </div>
             
-            <div className="w-full h-[calc(50%-0.5rem)]">
+            <div className="w-full h-[calc(50%-0.375rem)]">
               {links[2] && sanitizeLinkUrl(links[2]) !== '#' ? (
                 <a href={sanitizeLinkUrl(links[2])} target="_blank" rel="noopener noreferrer sponsored" className="block w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
                   <img src={images[2] || images[0]} alt="Ad 3" className="w-full h-full object-cover rounded-xl" loading="lazy" />
@@ -312,7 +316,7 @@ export function InternalAdBanner({ placement, newsId, className, index }: Intern
   );
 
   return (
-    <div className={cn("relative overflow-hidden max-w-full box-border", placementStyles[placement], className)}>
+    <div className={cn("relative overflow-hidden max-w-full box-border", placementStyles[placement], className)} style={style}>
       <span className="absolute top-0 right-0 bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-bl-lg rounded-tr-xl z-10 uppercase tracking-widest">
         Sponsored
       </span>

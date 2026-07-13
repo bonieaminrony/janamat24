@@ -1,6 +1,7 @@
 import { useParams, useLocation, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout } from "@/lib/query-utils";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ import { RichContentWithAds } from "@/components/news/RichContentRenderer";
 import { ReadingProgress } from "@/components/ui/reading-progress";
 import { TabbedNewsWidget } from "@/components/widgets/TabbedNewsWidget";
 import { NewsletterWidget } from "@/components/widgets/NewsletterWidget";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface Article {
   id: string;
@@ -63,43 +65,51 @@ const NewsDetailPage = () => {
   const location = useLocation();
   const fullUrl = `${window.location.origin}${location.pathname}`;
   
-  const [fontSize, setFontSize] = useState(18);
+  const { settings } = useSiteSettings();
+  
+  const [fontSize, setFontSize] = useState(20);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const { data: article, isLoading } = useQuery<Article | null>({
+  const { data: article, isLoading, isError, refetch } = useQuery<Article | null>({
     queryKey: ["news-detail", slug],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("news")
-        .select("*, categories(name, slug)")
-        .eq("slug", decodeBanglaText(slug))
-        .eq("status", "published")
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      
-      if (data) {
-        data.title = decodeBanglaText(data.title);
-        data.excerpt = decodeBanglaText(data.excerpt);
-        data.content = decodeBanglaText(data.content);
-        if (data.categories) {
-          data.categories.name = decodeBanglaText(data.categories.name);
+      const fetchPromise = (async () => {
+        const { data, error } = await supabase
+          .from("news")
+          .select("*, categories(name, slug)")
+          .eq("slug", decodeBanglaText(slug))
+          .eq("status", "published")
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        
+        if (data) {
+          data.title = decodeBanglaText(data.title);
+          data.excerpt = decodeBanglaText(data.excerpt);
+          data.content = decodeBanglaText(data.content);
+          if (data.categories) {
+            data.categories.name = decodeBanglaText(data.categories.name);
+          }
         }
-      }
-      return data as unknown as Article;
+        return data as unknown as Article;
+      })();
+      return withTimeout(fetchPromise, 10000);
     },
   });
 
   const { data: author } = useQuery<Author | null>({
     queryKey: ["author", article?.author_id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, role, bio, avatar_url, facebook_url, twitter_url")
-        .eq("user_id", article?.author_id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Author;
+      const fetchPromise = (async () => {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, role, bio, avatar_url, facebook_url, twitter_url")
+          .eq("user_id", article?.author_id)
+          .maybeSingle();
+        if (error) throw error;
+        return data as Author;
+      })();
+      return withTimeout(fetchPromise, 10000);
     },
     enabled: !!article?.author_id,
   });
@@ -107,16 +117,19 @@ const NewsDetailPage = () => {
   const { data: relatedNews = [] } = useQuery({
     queryKey: ["related-news", article?.category_id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("news")
-        .select("id, title, slug, image_url, published_at")
-        .eq("status", "published")
-        .eq("category_id", article?.category_id)
-        .neq("id", article?.id)
-        .order("published_at", { ascending: false })
-        .limit(6);
-      if (error) throw error;
-      return data;
+      const fetchPromise = (async () => {
+        const { data, error } = await supabase
+          .from("news")
+          .select("id, title, slug, image_url, published_at")
+          .eq("status", "published")
+          .eq("category_id", article?.category_id)
+          .neq("id", article?.id)
+          .order("published_at", { ascending: false })
+          .limit(6);
+        if (error) throw error;
+        return data;
+      })();
+      return withTimeout(fetchPromise, 10000);
     },
     enabled: !!article?.category_id,
   });
@@ -125,15 +138,108 @@ const NewsDetailPage = () => {
   const { data: blockNews = [] } = useQuery({
     queryKey: ["block-news-detail"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("news")
-        .select("id, title, slug, image_url, published_at, views")
-        .eq("status", "published")
-        .order("published_at", { ascending: false })
-        .limit(16);
-      if (error) throw error;
-      return data;
+      const fetchPromise = (async () => {
+        const { data, error } = await supabase
+          .from("news")
+          .select("id, title, slug, image_url, published_at, views")
+          .eq("status", "published")
+          .order("published_at", { ascending: false })
+          .limit(16);
+        if (error) throw error;
+        return data;
+      })();
+      return withTimeout(fetchPromise, 10000);
     },
+  });
+
+  // Fetch next article (second article on the page)
+  const { data: nextArticle } = useQuery<Article | null>({
+    queryKey: ["next-article", article?.id, settings?.second_article_id],
+    queryFn: async () => {
+      if (!article) return null;
+      
+      const fetchPromise = (async () => {
+        let nextData = null;
+        
+        // 1. Try manual configuration
+        if (settings?.second_article_id) {
+          const { data, error } = await supabase
+            .from("news")
+            .select("*, categories(name, slug)")
+            .eq("id", settings.second_article_id)
+            .eq("status", "published")
+            .maybeSingle();
+            
+          if (!error && data && data.id !== article.id) {
+            nextData = data;
+          }
+        }
+        
+        // 2. Try same category latest
+        if (!nextData) {
+          const { data, error } = await supabase
+            .from("news")
+            .select("*, categories(name, slug)")
+            .eq("status", "published")
+            .eq("category_id", article.category_id)
+            .neq("id", article.id)
+            .order("published_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+            
+          if (!error && data) {
+            nextData = data;
+          }
+        }
+        
+        // 3. Try overall latest
+        if (!nextData) {
+          const { data, error } = await supabase
+            .from("news")
+            .select("*, categories(name, slug)")
+            .eq("status", "published")
+            .neq("id", article.id)
+            .order("published_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+            
+          if (!error && data) {
+            nextData = data;
+          }
+        }
+        
+        if (nextData) {
+          nextData.title = decodeBanglaText(nextData.title);
+          nextData.excerpt = decodeBanglaText(nextData.excerpt);
+          nextData.content = decodeBanglaText(nextData.content);
+          if (nextData.categories) {
+            nextData.categories.name = decodeBanglaText(nextData.categories.name);
+          }
+          return nextData as unknown as Article;
+        }
+        return null;
+      })();
+      
+      return withTimeout(fetchPromise, 10000);
+    },
+    enabled: !!article && !!settings
+  });
+
+  const { data: nextAuthor } = useQuery<Author | null>({
+    queryKey: ["next-author", nextArticle?.author_id],
+    queryFn: async () => {
+      const fetchPromise = (async () => {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, role, bio, avatar_url, facebook_url, twitter_url")
+          .eq("user_id", nextArticle?.author_id)
+          .maybeSingle();
+        if (error) throw error;
+        return data as Author;
+      })();
+      return withTimeout(fetchPromise, 10000);
+    },
+    enabled: !!nextArticle?.author_id,
   });
 
   useEffect(() => {
@@ -197,6 +303,25 @@ const NewsDetailPage = () => {
     }
   };
 
+  if (isError) {
+    return (
+      <PublicLayout>
+        <div className="container py-24 text-center max-w-xl mx-auto">
+          <h1 className="text-2xl font-bold mb-4 text-red-500">সংবাদ লোড করতে সমস্যা হয়েছে</h1>
+          <p className="text-muted-foreground mb-6">অনুগ্রহ করে আপনার ইন্টারনেট সংযোগ পরীক্ষা করে পুনরায় চেষ্টা করুন</p>
+          <div className="flex gap-4 justify-center">
+            <Button onClick={() => refetch()} variant="default" className="rounded-full">
+              পুনরায় চেষ্টা করুন
+            </Button>
+            <Button asChild variant="outline" className="rounded-full">
+              <Link to="/">প্রচ্ছদে ফিরে যান</Link>
+            </Button>
+          </div>
+        </div>
+      </PublicLayout>
+    );
+  }
+
   if (isLoading) {
     return (
       <PublicLayout>
@@ -237,6 +362,19 @@ const NewsDetailPage = () => {
       caption,
       kicker
     };
+  };
+
+  const getAdPositions = (content: string | null) => {
+    if (!content) return [2, 5];
+    const isHtml = /<[a-z][\s\S]*>/i.test(content);
+    const count = isHtml 
+      ? content.split('</p>').filter(p => p.trim()).length 
+      : content.split('\n').filter(line => line.trim()).length;
+    
+    if (count >= 6) {
+      return [2, 4, 6];
+    }
+    return [2, 5];
   };
 
   const { src: imageSrc, caption: imageCaption, kicker: imageKicker } = getImageUrlAndCaption(article.image_url);
@@ -354,23 +492,24 @@ const NewsDetailPage = () => {
                   {article.excerpt}
                 </div>
               )}
-              <div className="prose-article leading-relaxed" style={{ fontSize: `${fontSize}px` }}>
+              <div className="prose-article leading-relaxed text-justify mx-auto w-full max-w-[92%]" style={{ fontSize: `${fontSize}px` }}>
                 <RichContentWithAds
                   content={article.content || ""}
                   renderAd={(index: number) => (
                     <UniversalAdBanner 
-                      placement={index === 0 ? "article_inline" : "article_related"} 
-                      slot={index === 0 ? "9876543210" : "multi-level"} 
+                      placement="article_inline" 
+                      slot={index === 0 ? "9876543210" : index === 1 ? "multi-level-middle" : "multi-level"} 
                       index={index} 
                       className={cn(
-                        "my-8 mx-auto",
+                        "my-8",
                         index === 0 
-                          ? "flex flex-col gap-4 py-6 border-y border-dashed border-border/50 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl items-center justify-center relative w-5/6 md:w-2/3"
-                          : "w-full flex items-center justify-center block"
+                          ? "flex flex-col gap-4 py-6 border-y border-dashed border-border/50 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl items-center justify-center relative w-full md:w-1/2"
+                          : "w-full md:w-1/2 block"
                       )} 
+                      style={{ marginLeft: 0, marginRight: 0 }}
                     />
                   )}
-                  adPositions={[2, 8]}
+                  adPositions={getAdPositions(article.content)}
                 />
               </div>
 
@@ -394,6 +533,106 @@ const NewsDetailPage = () => {
 
 
               <CommentsSection newsId={article.id} authorId={article.author_id} />
+
+              {/* Second Article Container */}
+              {nextArticle && (() => {
+                const { src: nextImageSrc, caption: nextImageCaption, kicker: nextImageKicker } = getImageUrlAndCaption(nextArticle.image_url);
+                const nextDisplayKicker = nextImageKicker || nextArticle.kicker;
+
+                return (
+                  <div className="mt-20 pt-16 border-t-[6px] border-double border-slate-200 dark:border-slate-800">
+                    <div className="bg-primary/5 text-primary dark:bg-primary/10 dark:text-primary-foreground text-center py-3.5 rounded-2xl mb-12 font-black text-sm uppercase tracking-[0.2em] border border-primary/10">
+                      ৩ নাম্বার নিউজ
+                    </div>
+
+                    {/* Title */}
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-headline leading-tight mb-8">
+                      {nextDisplayKicker && <span className="block text-xl md:text-2xl text-muted-foreground font-semibold mb-2">{nextDisplayKicker}</span>}
+                      {nextArticle.title}
+                    </h1>
+
+                    {/* Meta bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 pb-6 border-b border-border">
+                      <div className="flex items-center gap-4">
+                        {nextAuthor?.avatar_url ? (
+                          <img src={sanitizeImageUrl(nextAuthor.avatar_url)!} alt={nextAuthor.full_name || "Author"} className="w-12 h-12 rounded-full object-cover bg-muted border border-border" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-muted-foreground border border-border">
+                            <User className="w-6 h-6" />
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <div className="text-[13px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                            লিখেছেন – <span className="font-bold text-headline text-lg">{nextAuthor?.full_name || "জনমত ২৪ ডেস্ক"}</span>
+                            {nextAuthor?.role && (
+                              <Badge variant="default" className="bg-primary hover:bg-primary/90 text-white text-[10px] px-2 py-0 h-5 font-medium ml-1">
+                                {nextAuthor.role === 'admin' ? 'সম্পাদক' : nextAuthor.role === 'editor' ? 'সহ-সম্পাদক' : nextAuthor.role === 'reporter' ? 'রিপোর্টার' : nextAuthor.role}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                            <Clock className="w-3.5 h-3.5" />
+                            {formatBanglaDateFull(nextArticle.published_at)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Image */}
+                    {nextArticle.image_url && (
+                      <div className="mb-12">
+                        <div className="relative aspect-video w-full overflow-hidden border border-border bg-muted group rounded-lg">
+                          <img
+                            src={sanitizeImageUrl(nextImageSrc)!}
+                            alt={nextArticle.title}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                          />
+                        </div>
+                        {nextImageCaption && (
+                          <div className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                            {nextImageCaption}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Content */}
+                    {nextArticle.excerpt && (
+                      <div className="text-xl font-medium text-slate-700 dark:text-slate-300 leading-relaxed mb-8 border-l-4 border-primary pl-4">
+                        {nextArticle.excerpt}
+                      </div>
+                    )}
+                    <div className="prose-article leading-relaxed text-justify mx-auto w-full max-w-[92%]" style={{ fontSize: `${fontSize}px` }}>
+                      <RichContentWithAds
+                        content={nextArticle.content || ""}
+                        renderAd={(index: number) => (
+                          <UniversalAdBanner 
+                            placement="article_inline" 
+                            slot={index === 0 ? "9876543210-next" : index === 1 ? "multi-level-middle-next" : "multi-level-next"} 
+                            index={index + 10} 
+                            className={cn(
+                              "my-8",
+                              index === 0 
+                                ? "flex flex-col gap-4 py-6 border-y border-dashed border-border/50 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl items-center justify-center relative w-full md:w-1/2"
+                                : "w-full md:w-1/2 block"
+                            )} 
+                            style={{ marginLeft: 0, marginRight: 0 }}
+                          />
+                        )}
+                        adPositions={getAdPositions(nextArticle.content)}
+                      />
+                    </div>
+
+                    {/* Social Share Bottom */}
+                    <div className="mb-12 py-6 border-y border-border">
+                      <SocialShare url={`${window.location.origin}/news/${nextArticle.slug}`} title={nextArticle.title} />
+                    </div>
+
+                    {/* Comments Section */}
+                    <CommentsSection newsId={nextArticle.id} authorId={nextArticle.author_id} />
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Sidebar */}

@@ -11,6 +11,10 @@ const loginSchema = z.object({
   email: z.string().email("সঠিক ইমেইল ঠিকানা দিন"),
   password: z.string().min(6, "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে")
 });
+
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 60 * 1000; // 60 seconds
+
 const AuthPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,10 +23,30 @@ const AuthPage = () => {
     email?: string;
     password?: string;
   }>({});
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [lockCountdown, setLockCountdown] = useState(0);
   const navigate = useNavigate();
   const {
     toast
   } = useToast();
+
+  // Countdown timer for lockout
+  useEffect(() => {
+    if (!lockedUntil) return;
+    const interval = setInterval(() => {
+      const remaining = Math.ceil((lockedUntil - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setLockedUntil(null);
+        setLockCountdown(0);
+        setFailedAttempts(0);
+        clearInterval(interval);
+      } else {
+        setLockCountdown(remaining);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockedUntil]);
 
   // Check if already logged in
   useEffect(() => {
@@ -49,6 +73,16 @@ const AuthPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+
+    // Client-side brute-force protection
+    if (lockedUntil && Date.now() < lockedUntil) {
+      toast({
+        title: "লগইন সাময়িকভাবে বন্ধ",
+        description: `অনেক বার ব্যর্থ হয়েছে। ${lockCountdown} সেকেন্ড পরে আবার চেষ্টা করুন।`,
+        variant: "destructive"
+      });
+      return;
+    }
 
     // Validate input
     const result = loginSchema.safeParse({
@@ -78,11 +112,24 @@ const AuthPage = () => {
       });
       if (error) {
         if (error.message.includes("Invalid login")) {
-          toast({
-            title: "লগইন ব্যর্থ",
-            description: "ইমেইল বা পাসওয়ার্ড সঠিক নয়",
-            variant: "destructive"
-          });
+          const newAttempts = failedAttempts + 1;
+          setFailedAttempts(newAttempts);
+          if (newAttempts >= MAX_ATTEMPTS) {
+            const until = Date.now() + LOCKOUT_DURATION_MS;
+            setLockedUntil(until);
+            setLockCountdown(Math.ceil(LOCKOUT_DURATION_MS / 1000));
+            toast({
+              title: "লগইন বন্ধ",
+              description: "বারবার ব্যর্থ হওয়ায় ১ মিনিটের জন্য লগইন সাময়িকভাবে বন্ধ হয়েছে।",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "লগইন ব্যর্থ",
+              description: `ইমেইল বা পাসওয়ার্ড সঠিক নয় ০${MAX_ATTEMPTS - newAttempts > 0 ? ` (আর ${MAX_ATTEMPTS - newAttempts}টি চেষ্টা বাকি)` : ""}`,
+              variant: "destructive"
+            });
+          }
         } else {
           throw error;
         }
@@ -152,8 +199,13 @@ const AuthPage = () => {
               {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
             </div>
 
-            <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
-              {loading ? "অপেক্ষা করুন..." : "লগইন"}
+            {lockedUntil && (
+              <p className="text-sm text-destructive text-center font-medium">
+                বারবার ব্যর্থ হওয়ায় লগইন বন্ধ রয়েছে। {lockCountdown}সে. পরে আবার চেষ্টা করুন।
+              </p>
+            )}
+            <Button type="submit" className="w-full h-11 font-medium" disabled={loading || !!lockedUntil}>
+              {loading ? "অপেক্ষা করুন..." : lockedUntil ? `বন্ধ আছে (${lockCountdown}সে.)` : "লগইন"}
             </Button>
           </form>
 

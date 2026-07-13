@@ -6,6 +6,9 @@ export type AdSystemType = "manual" | "google" | "none";
 export interface SiteSettings {
   ad_system: AdSystemType;
   google_client_id?: string;
+  fb_page_id?: string;
+  fb_access_token?: string;
+  second_article_id?: string;
 }
 
 const CONFIG_NAME = "SYSTEM_CONFIG_DO_NOT_DELETE";
@@ -25,12 +28,12 @@ export function useSiteSettings() {
 
       if (error) {
         console.error("Failed to fetch settings config:", error);
-        return { ad_system: "manual", google_client_id: "ca-pub-1869371645821023" } as SiteSettings; 
+        return { ad_system: "manual", google_client_id: "ca-pub-1869371645821023", fb_page_id: "", fb_access_token: "" } as SiteSettings; 
       }
 
       // If configuration doesn't exist yet, return default
       if (!data) {
-        return { ad_system: "manual", google_client_id: "ca-pub-1869371645821023" } as SiteSettings;
+        return { ad_system: "manual", google_client_id: "ca-pub-1869371645821023", fb_page_id: "", fb_access_token: "" } as SiteSettings;
       }
       
       try {
@@ -38,14 +41,17 @@ export function useSiteSettings() {
           const parsed = JSON.parse(data.website_url);
           return { 
             ad_system: parsed.ad_system || "manual",
-            google_client_id: parsed.google_client_id || "ca-pub-1869371645821023"
+            google_client_id: parsed.google_client_id || "ca-pub-1869371645821023",
+            fb_page_id: parsed.fb_page_id || "",
+            fb_access_token: parsed.fb_access_token || "",
+            second_article_id: parsed.second_article_id || ""
           } as SiteSettings;
         }
       } catch (e) {
         console.error("Failed to parse settings JSON:", e);
       }
       
-      return { ad_system: "manual", google_client_id: "ca-pub-1869371645821023" } as SiteSettings;
+      return { ad_system: "manual", google_client_id: "ca-pub-1869371645821023", fb_page_id: "", fb_access_token: "" } as SiteSettings;
     },
     staleTime: 5 * 60 * 1000, 
   });

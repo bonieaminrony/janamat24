@@ -1,10 +1,12 @@
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout } from "@/lib/query-utils";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { NewsList } from "@/components/news/NewsList";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Newspaper, Search as SearchIcon, SearchX } from "lucide-react";
 import { toBanglaNumber } from "@/lib/bangla-utils";
 
@@ -13,35 +15,38 @@ export default function SearchPage() {
   const query = searchParams.get("q") || "";
   const dateQuery = searchParams.get("date") || "";
 
-  const { data: news = [], isLoading } = useQuery({
+  const { data: news = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["search-results", query, dateQuery],
     queryFn: async () => {
       if (!query.trim() && !dateQuery) return [];
       
-      let queryBuilder = supabase
-        .from("news")
-        .select("id, title, slug, excerpt, image_url, views, published_at, categories(name, slug)")
-        .eq("status", "published");
+      const fetchPromise = (async () => {
+        let queryBuilder = supabase
+          .from("news")
+          .select("id, title, slug, excerpt, content, image_url, views, published_at, categories(name, slug)")
+          .eq("status", "published");
 
-      if (query.trim()) {
-        const keywords = query.trim().split(/\s+/);
-        keywords.forEach(kw => {
-          queryBuilder = queryBuilder.or(`title.ilike.%${kw}%,excerpt.ilike.%${kw}%`);
-        });
-      }
+        if (query.trim()) {
+          const keywords = query.trim().split(/\s+/);
+          keywords.forEach(kw => {
+            queryBuilder = queryBuilder.or(`title.ilike.%${kw}%,excerpt.ilike.%${kw}%`);
+          });
+        }
 
-      if (dateQuery) {
-        queryBuilder = queryBuilder
-          .gte("published_at", `${dateQuery}T00:00:00.000Z`)
-          .lte("published_at", `${dateQuery}T23:59:59.999Z`);
-      }
-      
-      const { data, error } = await queryBuilder
-        .order("published_at", { ascending: false })
-        .limit(50);
-      
-      if (error) throw error;
-      return data;
+        if (dateQuery) {
+          queryBuilder = queryBuilder
+            .gte("published_at", `${dateQuery}T00:00:00.000Z`)
+            .lte("published_at", `${dateQuery}T23:59:59.999Z`);
+        }
+        
+        const { data, error } = await queryBuilder
+          .order("published_at", { ascending: false })
+          .limit(50);
+        
+        if (error) throw error;
+        return data;
+      })();
+      return withTimeout(fetchPromise, 10000);
     },
     enabled: !!query.trim() || !!dateQuery,
   });
@@ -74,7 +79,17 @@ export default function SearchPage() {
           </p>
         </div>
 
-        {isLoading ? (
+        {isError ? (
+          <div className="text-center py-20 bg-muted/20 rounded-[32px] max-w-2xl mx-auto border border-dashed border-red-200">
+            <h3 className="text-xl font-bold text-headline mb-2 text-red-500">অনুসন্ধান করতে সমস্যা হয়েছে</h3>
+            <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+              অনুগ্রহ করে আপনার ইন্টারনেট সংযোগ পরীক্ষা করে পুনরায় চেষ্টা করুন।
+            </p>
+            <Button onClick={() => refetch()} variant="outline" className="rounded-full gap-2 mx-auto">
+              পুনরায় চেষ্টা করুন
+            </Button>
+          </div>
+        ) : isLoading ? (
           <div className="max-w-4xl mx-auto space-y-4">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex gap-4 py-4 border-b border-divider">

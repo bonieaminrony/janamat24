@@ -21,3 +21,7 @@
 [[edge_functions]]
   function = "seo-meta"
   path = "/category/*"
+
+[[edge_functions]]
+  function = "sitemap"
+  path = "/sitemap.xml"

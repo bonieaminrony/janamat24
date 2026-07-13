@@ -67,8 +67,10 @@ interface News {
 
 export default function AdminNews() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingNews, setEditingNews] = useState<News | null>(null);
@@ -76,6 +78,21 @@ export default function AdminNews() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const PAGE_SIZE = 50;
+
+  // Debounce search query to prevent excessive database hits
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearchQuery, categoryFilter, statusFilter]);
 
   const handleCopyLink = (slug: string) => {
     const url = `${window.location.origin}/news/${slug}`;
@@ -98,12 +115,30 @@ export default function AdminNews() {
   }, [searchParams, setSearchParams]);
 
   const { data: news = [], isLoading } = useQuery<News[]>({
-    queryKey: ["admin-news"],
+    queryKey: ["admin-news", debouncedSearchQuery, categoryFilter, statusFilter, page],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("news")
         .select("id, title, slug, excerpt, image_url, category_id, author_id, status, is_featured, published_at, created_at, views, categories(name)")
         .order("created_at", { ascending: false });
+
+      if (categoryFilter !== "all") {
+        query = query.eq("category_id", categoryFilter);
+      }
+
+      if (statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+
+      if (debouncedSearchQuery.trim()) {
+        query = query.ilike("title", `%${debouncedSearchQuery.trim()}%`);
+      }
+
+      const from = (page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as unknown as News[];
     },
@@ -169,14 +204,7 @@ export default function AdminNews() {
     }
   };
 
-  const filteredNews = useMemo(() => {
-    return news.filter((n) => {
-      const matchesSearch = n.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = categoryFilter === "all" || n.category_id === categoryFilter;
-      const matchesStatus = statusFilter === "all" || n.status === statusFilter;
-      return matchesSearch && matchesCategory && matchesStatus;
-    });
-  }, [news, searchQuery, categoryFilter, statusFilter]);
+  const filteredNews = news;
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
@@ -308,6 +336,9 @@ export default function AdminNews() {
                           <div className="flex items-center gap-2 text-slate-300 dark:text-slate-700 text-xs font-bold uppercase tracking-widest">
                              <Calendar className="w-4 h-4" /> {formatBanglaDate(n.created_at)}
                           </div>
+                          <div className="flex items-center gap-2 text-slate-300 dark:text-slate-700 text-xs font-bold uppercase tracking-widest">
+                             <Eye className="w-4 h-4" /> {toBanglaNumber(n.views || 0)} ভিউ
+                          </div>
                        </div>
                     </div>
                   </div>
@@ -376,9 +407,38 @@ export default function AdminNews() {
                           <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 shadow-none hover:shadow-sm" onClick={() => handleCopyLink(n.slug)} title="লিংক কপি করুন"><Copy className="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-emerald-500" /></Button>
                        </div>
                    </div>
-                </CardContent>
+                 </CardContent>
              </Card>
            ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {filteredNews.length > 0 && (
+        <div className="flex items-center justify-between border-t border-slate-200/60 dark:border-slate-800 pt-6">
+          <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+            পৃষ্ঠা {toBanglaNumber(page)}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              className="rounded-lg h-9 font-bold border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              পূর্ববর্তী
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={news.length < PAGE_SIZE}
+              onClick={() => setPage(p => p + 1)}
+              className="rounded-lg h-9 font-bold border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              পরবর্তী
+            </Button>
+          </div>
         </div>
       )}
 

@@ -12,9 +12,10 @@ interface UniversalAdBannerProps {
   format?: "auto" | "fluid" | "rectangle" | "vertical" | "horizontal";
   responsive?: boolean;
   index?: number;
+  style?: React.CSSProperties;
 }
 
-export function UniversalAdBanner({ placement, slot, newsId, className, format, responsive, index }: UniversalAdBannerProps) {
+export function UniversalAdBanner({ placement, slot, newsId, className, format, responsive, index, style }: UniversalAdBannerProps) {
   const { settings, isLoading } = useSiteSettings();
 
   if (isLoading) {
@@ -38,7 +39,7 @@ export function UniversalAdBanner({ placement, slot, newsId, className, format, 
 
   // Fallback / Show Internal Ad
   if (settings.ad_system === "manual") {
-    return <InternalAdBanner placement={placement} newsId={newsId} className={className} index={index} />;
+    return <InternalAdBanner placement={placement} newsId={newsId} className={className} index={index} style={style} />;
   }
 
   return null;

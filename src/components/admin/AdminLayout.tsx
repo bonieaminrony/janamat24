@@ -25,21 +25,24 @@ class AdminErrorBoundary extends React.Component<{children: React.ReactNode}, {h
 
   render() {
     if (this.state.hasError) {
+      const isDev = import.meta.env.DEV;
       return (
         <div className="min-h-screen flex items-center justify-center bg-red-50 p-4 w-full h-full z-50 absolute inset-0">
           <div className="bg-white p-8 rounded-xl shadow-2xl max-w-2xl w-full border border-red-200 text-center">
-            <h2 className="text-2xl font-black text-red-600 mb-4">অ্যাডমিন প্যানেল ক্র্যাশ (Admin Panel Crash)</h2>
-            <p className="text-slate-700 mb-6 font-medium">Sorry, an error occurred while loading the admin panel. Please provide this error to your developer.</p>
-            <div className="bg-slate-900 p-4 rounded-lg text-sm overflow-auto text-red-400 whitespace-pre-wrap text-left font-mono max-h-64 shadow-inner">
-              {this.state.error?.toString()}
-              {'\n'}
-              {this.state.error?.stack}
-            </div>
+            <h2 className="text-2xl font-black text-red-600 mb-4">একটি সমস্যা হয়েছে</h2>
+            <p className="text-slate-700 mb-6 font-medium">অ্যাডমিন প্যানেল লোড করতে সমস্যা হয়েছে। পেজটি রিলোড করুন।</p>
+            {isDev && (
+              <div className="bg-slate-900 p-4 rounded-lg text-sm overflow-auto text-red-400 whitespace-pre-wrap text-left font-mono max-h-64 shadow-inner">
+                {this.state.error?.toString()}
+                {'\n'}
+                {this.state.error?.stack}
+              </div>
+            )}
             <button 
               onClick={() => window.location.reload()} 
               className="mt-6 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold transition-all shadow-lg hover:shadow-xl active:scale-95"
             >
-              রিলোড করুন (Reload)
+              রিলোড করুন
             </button>
           </div>
         </div>
@@ -115,11 +118,9 @@ export default function AdminLayout() {
       });
       if (error) {
         console.error('Role check error:', error);
-        setHasRole(true); // Temporary bypass for testing
+        setHasRole(false);
       } else {
-        // Temporarily granting admin access to all logged in users for testing
-        // TODO: Revert this to `setHasRole(data === true)` when role management is set up
-        setHasRole(true); 
+        setHasRole(data === true);
       }
     } catch (err) {
       console.error('Role check exception:', err);

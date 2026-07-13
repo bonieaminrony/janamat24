@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, Fragment } from "react
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout } from "@/lib/query-utils";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { NewsCard } from "@/components/news/NewsCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -68,7 +69,7 @@ const CategoryPage = () => {
   }, [slug, sortBy, timeFilter]);
 
   // Fetch category info
-  const { data: category, isLoading: categoryLoading } = useQuery<Category | null>({
+  const { data: category, isLoading: categoryLoading, isError: isCategoryError, refetch: refetchCategory } = useQuery<Category | null>({
     queryKey: ["category", slug],
     queryFn: async () => {
       if (slug === "all") {
@@ -80,71 +81,84 @@ const CategoryPage = () => {
         };
       }
 
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("slug", slug)
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
+      const fetchPromise = (async () => {
+        const { data, error } = await supabase
+          .from("categories")
+          .select("*")
+          .eq("slug", slug)
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        return data;
+      })();
+      return withTimeout(fetchPromise, 10000);
     },
   });
 
   // Calculate cutoff date inside useQuery directly
-  const { data: paginatedNews = [], isFetching: newsLoading } = useQuery<NewsItem[]>({
+  const { data: paginatedNews = [], isFetching: newsLoading, isError: isNewsError, refetch: refetchNews } = useQuery<NewsItem[]>({
     queryKey: ["category-news-paginated", category?.id, page, sortBy, timeFilter],
     queryFn: async () => {
       if (!category?.id) return [];
       
-      const from = (page - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-      
-      let query = supabase
-        .from("news")
-        .select("id, title, slug, excerpt, image_url, published_at, views, categories(name, slug)")
-        .eq("status", "published");
+      const fetchPromise = (async () => {
+        const from = (page - 1) * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
         
-      if (category.id !== "all") {
-        query = query.eq("category_id", category.id);
-      }
-
-      if (timeFilter !== "all") {
-        const now = new Date();
-        let cutoffDate: Date;
-        switch (timeFilter) {
-          case "today": cutoffDate = new Date(now.setHours(0, 0, 0, 0)); break;
-          case "week": cutoffDate = new Date(now.setDate(now.getDate() - 7)); break;
-          case "month": cutoffDate = new Date(now.setMonth(now.getMonth() - 1)); break;
-          default: cutoffDate = new Date(0);
+        let query = supabase
+          .from("news")
+          .select("id, title, slug, excerpt, content, image_url, published_at, views, categories(name, slug)")
+          .eq("status", "published");
+          
+        if (category.id !== "all") {
+          query = query.eq("category_id", category.id);
         }
-        query = query.gte("published_at", cutoffDate.toISOString());
-      }
 
-      switch (sortBy) {
-        case "newest": query = query.order("published_at", { ascending: false }); break;
-        case "oldest": query = query.order("published_at", { ascending: true }); break;
-        case "popular": query = query.order("views", { ascending: false }); break;
-      }
-      
-      const { data, error } = await query.range(from, to);
+        if (timeFilter !== "all") {
+          const now = new Date();
+          let cutoffDate: Date;
+          switch (timeFilter) {
+            case "today": cutoffDate = new Date(now.setHours(0, 0, 0, 0)); break;
+            case "week": cutoffDate = new Date(now.setDate(now.getDate() - 7)); break;
+            case "month": cutoffDate = new Date(now.setMonth(now.getMonth() - 1)); break;
+            default: cutoffDate = new Date(0);
+          }
+          query = query.gte("published_at", cutoffDate.toISOString());
+        }
+
+        switch (sortBy) {
+          case "newest": query = query.order("published_at", { ascending: false }); break;
+          case "oldest": query = query.order("published_at", { ascending: true }); break;
+          case "popular": query = query.order("views", { ascending: false }); break;
+        }
         
-      if (error) throw error;
-      
-      if (page === 1) {
-        setAllNews((data as unknown as NewsItem[]) || []);
-      } else {
-        setAllNews(prev => {
-          const newItems = ((data as unknown as NewsItem[]) || []).filter(item => !prev.some(p => p.id === item.id));
-          return [...prev, ...newItems];
-        });
-      }
-      
-      setHasMore((data?.length || 0) === PAGE_SIZE);
-      return data as unknown as NewsItem[];
+        const { data, error } = await query.range(from, to);
+          
+        if (error) throw error;
+        return (data as unknown as NewsItem[]) || [];
+      })();
+      return withTimeout(fetchPromise, 10000);
     },
     enabled: !!category?.id,
   });
+
+  // Sync query results to allNews state to support infinite scrolling and handle cache hits correctly
+  useEffect(() => {
+    if (paginatedNews && paginatedNews.length > 0) {
+      if (page === 1) {
+        setAllNews(paginatedNews);
+      } else {
+        setAllNews(prev => {
+          const newItems = paginatedNews.filter(item => !prev.some(p => p.id === item.id));
+          return [...prev, ...newItems];
+        });
+      }
+      setHasMore(paginatedNews.length === PAGE_SIZE);
+    } else if (paginatedNews && paginatedNews.length === 0 && page === 1) {
+      setAllNews([]);
+      setHasMore(false);
+    }
+  }, [paginatedNews, page]);
 
   // Popular News for sidebar
   const { data: popularNews = [] } = useQuery({
@@ -191,6 +205,20 @@ const CategoryPage = () => {
     return () => observer.disconnect();
   }, [autoLoadCount, loadMore]);
 
+
+  if (isCategoryError) {
+    return (
+      <PublicLayout>
+        <div className="container py-8 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[50vh] text-muted-foreground text-center">
+          <p className="font-semibold text-red-500 mb-2">বিভাগ লোড করতে সমস্যা হয়েছে</p>
+          <p className="text-xs text-muted-foreground mb-4">অনুগ্রহ করে আপনার ইন্টারনেট সংযোগ পরীক্ষা করে পুনরায় চেষ্টা করুন</p>
+          <Button onClick={() => refetchCategory()} variant="outline" className="gap-2">
+            পুনরায় চেষ্টা করুন
+          </Button>
+        </div>
+      </PublicLayout>
+    );
+  }
 
   if (categoryLoading) {
     return (
@@ -263,7 +291,15 @@ const CategoryPage = () => {
             {/* Main Content (News List) */}
             <div className="lg:col-span-8 flex flex-col gap-8">
 
-              {page === 1 && newsLoading ? (
+              {isNewsError ? (
+                <div className="flex flex-col items-center justify-center min-h-[300px] text-muted-foreground bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-red-200 p-6 text-center">
+                  <p className="font-semibold text-red-500 mb-2">সংবাদ লোড করতে সমস্যা হয়েছে</p>
+                  <p className="text-xs text-muted-foreground mb-4">অনুগ্রহ করে পুনরায় চেষ্টা করুন</p>
+                  <Button onClick={() => refetchNews()} variant="outline" size="sm" className="gap-2">
+                    পুনরায় চেষ্টা করুন
+                  </Button>
+                </div>
+              ) : page === 1 && newsLoading ? (
                 <div className="flex flex-col items-center justify-center min-h-[300px] text-muted-foreground pt-4">
                   <Loader2 className="h-10 w-10 animate-spin mb-3 text-primary" />
                   <p className="font-medium animate-pulse">সংবাদ লোড হচ্ছে...</p>

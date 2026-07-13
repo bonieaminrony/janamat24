@@ -67,6 +67,15 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
                   {item.title}
                 </h3>
                 
+                {(() => {
+                  const displayExcerpt = item.excerpt || (item.content ? item.content.replace(/<[^>]+>/g, '').substring(0, 200) : null);
+                  return displayExcerpt ? (
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed font-medium">
+                      {displayExcerpt}
+                    </p>
+                  ) : null;
+                })()}
+                
                 {item.published_at && (
                   <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 opacity-80 mt-auto">
                     <Clock className="w-3.5 h-3.5" />
@@ -135,11 +144,25 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
                 </span>
               )}
             </Link>
+            {showAds && (
+              <div className="group flex flex-col sm:flex-row gap-5 p-4 bg-slate-50 dark:bg-slate-900/50 border border-dashed border-border mt-6 rounded-2xl items-center justify-between">
+                <div className="flex flex-col flex-1 order-2 sm:order-1">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1.5 flex items-center gap-1"><Star className="w-3 h-3 text-primary animate-pulse"/> স্পনসর্ড কন্টেন্ট</span>
+                  <h4 className="font-bold text-base text-muted-foreground leading-snug">
+                    তীব্র গরমে আপনার সন্তানের সুরক্ষায় এখনই অর্ডার করুন
+                  </h4>
+                </div>
+                <div className="w-full sm:w-[130px] shrink-0 aspect-[16/9] sm:aspect-[4/3] bg-muted border border-border relative flex items-center justify-center overflow-hidden rounded-xl order-1 sm:order-2">
+                   <span className="absolute top-0 right-0 bg-primary text-white text-[9px] font-black px-1 z-10 pointer-events-none uppercase">Ad</span>
+                   <UniversalAdBanner placement="in_article" slot={`native-sidebar-${categorySlug}`} className="w-full h-full" />
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Sidebar Split Items (Col 5) */}
           <div className="lg:col-span-5 flex flex-col gap-0 divide-y divide-border pl-0 lg:pl-6">
-            {news.slice(1, showAds ? 4 : 5).map((item, idx) => {
+            {news.slice(1, 5).map((item, idx) => {
               const secUrl = sanitizeImageUrl(item.image_url);
               return (
                 <Link key={item.id} to={`/news/${item.slug}`} className={`group flex gap-4 ${idx > 0 ? "pt-5" : "pb-5 first:pt-0"} pb-5 last:pb-0`}>
@@ -174,25 +197,6 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
                 </Link>
               )
             })}
-
-            {/* Native Split Ad */}
-            {showAds && (
-              <div className="group flex gap-4 pt-5 pb-5 last:pb-0 items-center bg-slate-50 dark:bg-slate-900/50 mt-1 border border-dashed border-border px-2">
-                <div className="w-[120px] shrink-0">
-                  <div className="aspect-[4/3] bg-muted border border-border relative flex items-center justify-center overflow-hidden">
-                     <span className="absolute top-0 right-0 bg-primary text-white text-[9px] font-black px-1 z-10 pointer-events-none uppercase">Ad</span>
-                     <UniversalAdBanner placement="in_article" slot={`native-sidebar-${categorySlug}`} className="w-full h-full" />
-                  </div>
-                </div>
-                
-                <div className="flex flex-col flex-1 justify-center">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1 flex items-center gap-1"><Star className="w-3 h-3"/> স্পনসর্ড কন্টেন্ট</span>
-                  <h4 className="font-bold text-[1.1rem] text-muted-foreground leading-snug line-clamp-2">
-                    তীব্র গরমে আপনার সন্তানের সুরক্ষায় এখনই অর্ডার করুন
-                  </h4>
-                </div>
-              </div>
-            )}
           </div>
           
         </div>

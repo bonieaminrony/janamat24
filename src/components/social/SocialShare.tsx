@@ -81,10 +81,10 @@ export function SocialShare({ url, title, className = "" }: SocialShareProps) {
           <Button
             key={platform}
             size="sm"
-            className={`h-11 px-5 rounded-2xl border-none ${bg} ${hover} text-white gap-2.5 shadow-md shadow-black/5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group`}
+            className={`h-11 px-5 rounded-2xl border-none no-underline ${bg} ${hover} text-white gap-2.5 shadow-md shadow-black/5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group`}
             onClick={() => openShare(platform)}
           >
-            <div className="bg-white/20 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+            <div className="bg-white/20 h-7 w-7 flex items-center justify-center rounded-lg group-hover:scale-110 transition-transform border-0 outline-none no-underline">
               <Icon className="h-4 w-4 text-white" />
             </div>
             <span className="text-xs font-bold tracking-wide text-white">{label}</span>
@@ -94,10 +94,10 @@ export function SocialShare({ url, title, className = "" }: SocialShareProps) {
         {/* Messenger / Native Share Button */}
         <Button
           size="sm"
-          className="h-11 px-5 rounded-2xl border-none bg-[#0084FF] hover:bg-[#0084FF]/85 text-white gap-2.5 shadow-md shadow-black/5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
+          className="h-11 px-5 rounded-2xl border-none no-underline bg-[#0084FF] hover:bg-[#0084FF]/85 text-white gap-2.5 shadow-md shadow-black/5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
           onClick={handleMessengerShare}
         >
-          <div className="bg-white/20 p-1.5 rounded-lg group-hover:scale-110 transition-transform">
+          <div className="bg-white/20 h-7 w-7 flex items-center justify-center rounded-lg group-hover:scale-110 transition-transform border-0 outline-none no-underline">
             <MessageCircle className="h-4 w-4 text-white" />
           </div>
           <span className="text-xs font-bold tracking-wide text-white">মেসেঞ্জার</span>
@@ -106,10 +106,10 @@ export function SocialShare({ url, title, className = "" }: SocialShareProps) {
         <Button
           variant="outline"
           size="sm"
-          className="h-11 px-5 rounded-2xl gap-2.5 bg-muted/30 border-muted/50 hover:bg-muted hover:-translate-y-1 transition-all duration-300 group shadow-sm hover:shadow-md text-foreground"
+          className="h-11 px-5 rounded-2xl gap-2.5 bg-muted/30 border-muted/50 no-underline hover:bg-muted hover:-translate-y-1 transition-all duration-300 group shadow-sm hover:shadow-md text-foreground"
           onClick={copyLink}
         >
-          <div className="bg-muted-foreground/10 p-1.5 rounded-lg group-hover:bg-primary/10 transition-colors">
+          <div className="bg-muted-foreground/10 h-7 w-7 flex items-center justify-center rounded-lg group-hover:bg-primary/10 transition-colors border-0 outline-none no-underline">
             <Link2 className="h-4 w-4" />
           </div>
           <span className="text-xs font-bold tracking-wide">কপি লিংক</span>

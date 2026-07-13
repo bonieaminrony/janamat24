@@ -5,16 +5,46 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Megaphone, MonitorOff, Globe, Settings, Save, KeyRound } from "lucide-react";
+import { Megaphone, MonitorOff, Globe, Settings, Save, KeyRound, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { decodeBanglaText } from "@/lib/bangla-utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminSettings() {
   const { settings, updateSettings, isUpdating, isLoading } = useSiteSettings();
   const [clientId, setClientId] = useState("");
+  const [fbPageId, setFbPageId] = useState("");
+  const [fbAccessToken, setFbAccessToken] = useState("");
+
+  const { data: newsList = [] } = useQuery({
+    queryKey: ["admin-settings-news-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("news")
+        .select("id, title")
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .limit(30);
+      
+      if (error) return [];
+      return (data || []).map(n => ({
+        id: n.id,
+        title: decodeBanglaText(n.title)
+      }));
+    }
+  });
 
   useEffect(() => {
     if (settings?.google_client_id) {
       setClientId(settings.google_client_id);
+    }
+    if (settings?.fb_page_id) {
+      setFbPageId(settings.fb_page_id);
+    }
+    if (settings?.fb_access_token) {
+      setFbAccessToken(settings.fb_access_token);
     }
   }, [settings]);
 
@@ -35,6 +65,18 @@ export default function AdminSettings() {
       toast.success("পাবলিশার আইডি আপডেট করা হয়েছে!");
     } catch (error) {
       toast.error("আইডি আপডেট করতে ব্যর্থ হয়েছে।");
+    }
+  };
+
+  const handleSaveFbSettings = async () => {
+    try {
+      await updateSettings({ 
+        fb_page_id: fbPageId.trim(),
+        fb_access_token: fbAccessToken.trim()
+      });
+      toast.success("ফেসবুক কনফিগারেশন আপডেট করা হয়েছে!");
+    } catch (error) {
+      toast.error("ফেসবুক সেটিংস আপডেট করতে ব্যর্থ হয়েছে।");
     }
   };
 
@@ -144,44 +186,136 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
-        {/* Configuration Properties Card */}
-        <Card className="border-slate-200/60 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-500 bg-white dark:bg-slate-900">
-          <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 p-8 pb-6">
-            <CardTitle className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-               <KeyRound className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-               পাবলিশার ডাটা
-            </CardTitle>
-            <CardDescription className="text-slate-500 dark:text-slate-400 text-sm mt-2">গুগল অ্যাডসেন্স অ্যাকাউন্ট কনফিগারেশন</CardDescription>
-          </CardHeader>
-          <CardContent className="p-8">
-            <div className={cn(
-               "space-y-6 transition-all duration-500",
-               settings?.ad_system !== "google" && "opacity-40 grayscale pointer-events-none blur-[1px]"
-            )}>
+        {/* Sidebar Stack Container */}
+        <div className="space-y-8">
+          {/* Configuration Properties Card */}
+          <Card className="border-slate-200/60 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-500 bg-white dark:bg-slate-900">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 p-8 pb-6">
+              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                 <KeyRound className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+                 পাবলিশার ডাটা
+              </CardTitle>
+              <CardDescription className="text-slate-500 dark:text-slate-400 text-sm mt-2">গুগল অ্যাডসেন্স অ্যাকাউন্ট কনফিগারেশন</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className={cn(
+                 "space-y-6 transition-all duration-500",
+                 settings?.ad_system !== "google" && "opacity-40 grayscale pointer-events-none blur-[1px]"
+              )}>
+                 <div className="space-y-3">
+                   <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Google Client ID (Publisher ID)</Label>
+                   <Input 
+                     value={clientId} 
+                     onChange={(e) => setClientId(e.target.value)} 
+                     placeholder="e.g. ca-pub-1869371645821023"
+                     className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-950 font-mono text-sm shadow-inner text-slate-900 dark:text-white"
+                   />
+                   <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                     আপনার অ্যাডসেন্স ড্যাশবোর্ড থেকে পাওয়া Publisher ID এখানে দিন।
+                   </p>
+                 </div>
+                 
+                 <Button 
+                   onClick={handleSaveClientId}
+                   disabled={isUpdating || !clientId.trim() || clientId === settings?.google_client_id}
+                   className="w-full h-12 rounded-xl bg-slate-900 dark:bg-primary hover:bg-slate-800 dark:hover:opacity-90 text-white dark:text-primary-foreground font-bold tracking-wide shadow-lg active:scale-95 transition-all gap-2"
+                 >
+                   <Save className="w-4 h-4" />
+                   আপডেট করুন
+                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Facebook Settings Card */}
+          <Card className="border-slate-200/60 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-500 bg-white dark:bg-slate-900">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 p-8 pb-6">
+              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                 <Globe className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                 ফেসবুক অটো-পোস্ট সেটিংস 🔵
+              </CardTitle>
+              <CardDescription className="text-slate-500 dark:text-slate-400 text-sm mt-2">১-ক্লিক সরাসরি ফেসবুক পেজে পোস্ট করার ক্রেডেনশিয়াল</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
                <div className="space-y-3">
-                 <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Google Client ID (Publisher ID)</Label>
+                 <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Facebook Page ID</Label>
                  <Input 
-                   value={clientId} 
-                   onChange={(e) => setClientId(e.target.value)} 
-                   placeholder="e.g. ca-pub-1869371645821023"
+                   value={fbPageId} 
+                   onChange={(e) => setFbPageId(e.target.value)} 
+                   placeholder="যেমন: 1054398748392"
+                   className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-950 font-mono text-sm shadow-inner text-slate-900 dark:text-white"
+                 />
+               </div>
+
+               <div className="space-y-3">
+                 <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">Page Access Token</Label>
+                 <Input 
+                   type="password"
+                   value={fbAccessToken} 
+                   onChange={(e) => setFbAccessToken(e.target.value)} 
+                   placeholder="EAAW..."
                    className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-950 font-mono text-sm shadow-inner text-slate-900 dark:text-white"
                  />
                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                   আপনার অ্যাডসেন্স ড্যাশবোর্ড থেকে পাওয়া Publisher ID এখানে দিন।
+                   Meta for Developers থেকে আপনার পেজের জন্য স্থায়ী (Never Expire) এক্সেস টোকেন জেনারেট করে এখানে দিন।
                  </p>
                </div>
                
                <Button 
-                 onClick={handleSaveClientId}
-                 disabled={isUpdating || !clientId.trim() || clientId === settings?.google_client_id}
-                 className="w-full h-12 rounded-xl bg-slate-900 dark:bg-primary hover:bg-slate-800 dark:hover:opacity-90 text-white dark:text-primary-foreground font-bold tracking-wide shadow-lg active:scale-95 transition-all gap-2"
+                 onClick={handleSaveFbSettings}
+                 disabled={isUpdating || !fbPageId.trim() || !fbAccessToken.trim() || (fbPageId === settings?.fb_page_id && fbAccessToken === settings?.fb_access_token)}
+                 className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-wide shadow-lg active:scale-95 transition-all gap-2"
                >
                  <Save className="w-4 h-4" />
-                 আপডেট করুন
+                 ফেসবুক সেটিংস আপডেট করুন
                </Button>
-            </div>
-          </CardContent>
-        </Card>
+             </CardContent>
+          </Card>
+
+          {/* Second Article Settings Card */}
+          <Card className="border-slate-200/60 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-500 bg-white dark:bg-slate-900">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 p-8 pb-6">
+              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                 <FileText className="w-5 h-5 text-indigo-500" />
+                 ৩ নাম্বার নিউজ প্রদর্শন সেটিংস 📰
+              </CardTitle>
+              <CardDescription className="text-slate-500 dark:text-slate-400 text-sm mt-2">প্রথম খবরের নিচে প্রদর্শনের জন্য ৩ নাম্বার নিউজ সিলেক্ট করুন</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+               <div className="space-y-3">
+                 <Label className="text-sm font-bold text-slate-700 dark:text-slate-300">৩ নাম্বার নিউজ নির্বাচন করুন</Label>
+                 <Select 
+                   value={settings?.second_article_id || "auto"} 
+                   onValueChange={async (val) => {
+                     try {
+                       await updateSettings({ second_article_id: val === "auto" ? "" : val });
+                       toast.success("৩ নাম্বার নিউজ সেটিংস আপডেট করা হয়েছে!");
+                     } catch (err) {
+                       toast.error("সেটিংস সংরক্ষণ করা যায়নি।");
+                     }
+                   }}
+                 >
+                   <SelectTrigger className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium text-slate-900 dark:text-white">
+                     <SelectValue placeholder="নির্বাচন করুন" />
+                   </SelectTrigger>
+                   <SelectContent className="rounded-xl border-none shadow-lg bg-white dark:bg-slate-950 max-h-[300px]">
+                     <SelectItem value="auto" className="cursor-pointer font-bold text-indigo-600 dark:text-indigo-400">
+                       অটোমেটিক (৩ নাম্বার নিউজ)
+                     </SelectItem>
+                     {newsList.map((n: any) => (
+                       <SelectItem key={n.id} value={n.id} className="cursor-pointer">
+                         {n.title}
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed font-bengali">
+                   যেকোনো খবর পড়ার পর কমেন্ট বক্সের নিচে ৩ নাম্বার নিউজ হিসেবে এই খবরটি সরাসরি লোড হবে। ডিফল্টভাবে এটি একই বিভাগের অন্য একটি সর্বশেষ খবর অটোমেটিক লোড করবে।
+                 </p>
+               </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
       
     </div>

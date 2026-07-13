@@ -64,7 +64,7 @@ const Index = () => {
     queryFn: async () => {
       const { data: featured, error } = await supabase
         .from("news")
-        .select("id, title, slug, excerpt, image_url, views, published_at, categories(name, slug)")
+        .select("id, title, slug, excerpt, content, image_url, views, published_at, categories(name, slug)")
         .eq("status", "published")
         .eq("is_featured", true)
         .order("published_at", { ascending: false })
@@ -73,7 +73,7 @@ const Index = () => {
       if (featured.length === 0) {
         const { data: latest } = await supabase
           .from("news")
-          .select("id, title, slug, excerpt, image_url, views, published_at, categories(name, slug)")
+          .select("id, title, slug, excerpt, content, image_url, views, published_at, categories(name, slug)")
           .eq("status", "published")
           .order("published_at", { ascending: false })
           .limit(11);
@@ -102,7 +102,7 @@ const Index = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("news")
-        .select("id, title, slug, excerpt, image_url, published_at, views, categories(name, slug)")
+        .select("id, title, slug, excerpt, content, image_url, published_at, views, categories(name, slug)")
         .eq("status", "published")
         .order("published_at", { ascending: false })
         .limit(100);
@@ -266,10 +266,9 @@ const Index = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            {/* MAIN CONTENT PORTAL BLOCKS (Col 8) */}
-            <div className="lg:col-span-8 flex flex-col gap-8">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* MAIN CONTENT PORTAL BLOCKS */}
+            <div className="flex-1 min-w-0 flex flex-col gap-8">
               
               {/* Category Blocks */}
               {blockLoading ? (
@@ -371,8 +370,8 @@ const Index = () => {
               )}
             </div>
 
-            {/* MEGA SIDEBAR (Col 4) */}
-            <aside className="lg:col-span-4 flex flex-col gap-8">
+            {/* MEGA SIDEBAR - Fixed width, never overflows */}
+            <aside className="w-full lg:w-[360px] lg:max-w-[360px] flex-shrink-0 flex flex-col gap-8">
               
               {/* Live TV Widget */}
               <LiveTVWidget />
@@ -396,7 +395,7 @@ const Index = () => {
               {/* Poll Widget */}
               <PollWidget />
               
-              <div className="sticky top-[100px] flex flex-col gap-8">
+              <div className="flex flex-col gap-8">
                 <UniversalAdBanner placement="sidebar" slot="2475391229" className="rounded-2xl overflow-hidden shadow-sm" />
                 <ArchiveCalendarWidget />
                 <NewsletterWidget />

@@ -46,6 +46,35 @@ interface NewsEditorFormProps {
   onClose: () => void;
 }
 
+function cleanScrapedTitle(title: string): string {
+  if (!title) return "";
+  
+  // Remove known suffix first
+  let cleaned = title.replace(" - Janamat24", "").replace(" | Janamat24", "").trim();
+  
+  // Delimiters with spaces around them
+  const delimiters = [" | ", " - ", " – ", " — ", " ::: ", " :: ", " / ", " • ", " · "];
+  
+  for (const delim of delimiters) {
+    if (cleaned.includes(delim)) {
+      const parts = cleaned.split(delim);
+      if (parts.length > 1) {
+        // The title is usually the longest part
+        let longest = parts[0].trim();
+        for (let i = 1; i < parts.length; i++) {
+          if (parts[i].trim().length > longest.length) {
+            longest = parts[i].trim();
+          }
+        }
+        cleaned = longest;
+        break; // Stop at first split
+      }
+    }
+  }
+  
+  return cleaned.trim();
+}
+
 export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const editingId = news?.id || null;
@@ -113,7 +142,7 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
       if (data.error) throw new Error(data.error);
 
       if (data.title) {
-        setTitle(data.title.replace(" - Janamat24", "").trim());
+        setTitle(cleanScrapedTitle(data.title));
       }
       if (data.content) {
         setContent(data.content);
@@ -215,21 +244,36 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
 
 
 
+  const scrollToAndHighlight = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      element.classList.add("border-destructive", "bg-destructive/5", "ring-2", "ring-destructive", "ring-offset-2", "animate-pulse");
+      setTimeout(() => {
+        element.classList.remove("border-destructive", "bg-destructive/5", "ring-2", "ring-destructive", "ring-offset-2", "animate-pulse");
+      }, 3000);
+    }
+  };
+
   const handlePublish = () => {
     if (!title.trim()) {
       toast({ title: "সতর্কতা", description: "শিরোনাম আবশ্যক", variant: "destructive" });
+      scrollToAndHighlight("editor-title-container");
       return;
     }
     if (!imageUrl) {
       toast({ title: "সতর্কতা", description: "থাম্বনেইল ইমেজ আবশ্যক", variant: "destructive" });
+      scrollToAndHighlight("editor-image-container");
       return;
     }
     if (!content) {
       toast({ title: "সতর্কতা", description: "বিস্তারিত কন্টেন্ট আবশ্যক", variant: "destructive" });
+      scrollToAndHighlight("editor-content-container");
       return;
     }
     if (!categoryId) {
       toast({ title: "সতর্কতা", description: "সংবাদ বিভাগ আবশ্যক", variant: "destructive" });
+      scrollToAndHighlight("editor-category-container");
       return;
     }
     saveMutation.mutate('published');
@@ -389,7 +433,7 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
                         </div>
                       </Card>
 
-                      <div className="space-y-3 group">
+                      <div id="editor-title-container" className="space-y-3 group border border-transparent rounded-2xl transition-all">
                         <p className="text-[10px] font-bold text-primary uppercase tracking-widest ml-1">সুপার টাইটেল / কিকার (ঐচ্ছিক)</p>
                         <Input 
                           value={kicker} 
@@ -406,7 +450,7 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
                         />
                       </div>
                       
-                      <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl group transition-all">
+                      <Card id="editor-image-container" className="p-6 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 shadow-sm rounded-2xl group transition-all">
                         <div className="flex items-center justify-between mb-4 px-1">
                           <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">থাম্বনেইল ইমেজ</p>
                           <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center"><ImageIcon className="w-4 h-4 text-slate-400 dark:text-slate-500" /></div>
@@ -442,12 +486,14 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
                           <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400">অটো-সেভ সক্রিয়</span>
                         </div>
                       </div>
-                      <RichTextEditor value={content} onChange={setContent} />
+                      <div id="editor-content-container" className="border border-transparent rounded-2xl transition-all">
+                        <RichTextEditor value={content} onChange={setContent} />
+                      </div>
                     </div>
 
                     <div className="space-y-8">
                         <div className="grid md:grid-cols-2 gap-6">
-                            <Card className="border border-slate-200/60 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900 p-6 space-y-4">
+                            <Card id="editor-category-container" className="border border-slate-200/60 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900 p-6 space-y-4">
                                 <div className="flex items-center gap-3 mb-1">
                                     <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-primary"><LayoutGrid className="w-5 h-5" /></div>
                                     <p className="text-lg font-bold text-slate-900 dark:text-white">সংবাদ বিভাগ</p>

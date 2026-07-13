@@ -6,6 +6,7 @@ interface NewsItem {
   title: string;
   slug: string;
   excerpt: string | null;
+  content?: string | null;
   image_url: string | null;
   published_at: string | null;
   views: number;
@@ -74,6 +75,7 @@ export function NewsList({ news, title = "সর্বশেষ সংবাদ"
               title={item.title}
               slug={item.slug}
               excerpt={item.excerpt}
+              content={item.content}
               image_url={item.image_url}
               published_at={item.published_at}
               views={item.views}

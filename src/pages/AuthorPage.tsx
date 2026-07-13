@@ -67,7 +67,7 @@ export default function AuthorPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("news")
-        .select("id, title, slug, excerpt, image_url, published_at, created_at, views, categories(name, slug)")
+        .select("id, title, slug, excerpt, content, image_url, published_at, created_at, views, categories(name, slug)")
         .eq("author_id", userId)
         .eq("status", "published")
         .order("published_at", { ascending: false });

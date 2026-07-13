@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import DOMPurify from "dompurify";
 import { sanitizeLinkUrl, sanitizeImageUrl } from "@/lib/url-utils";
 
 interface RichContentRendererProps {
@@ -162,13 +163,12 @@ function isHtmlContent(content: string): boolean {
   return /<[a-z][\s\S]*>/i.test(content);
 }
 
-// Sanitize HTML content for security (basic sanitization)
+// Sanitize HTML content for security (using DOMPurify)
 function sanitizeHtml(html: string): string {
-  // Remove script tags and event handlers
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/on\w+="[^"]*"/gi, '')
-    .replace(/on\w+='[^']*'/gi, '');
+  return DOMPurify.sanitize(html, {
+    ADD_TAGS: ['iframe'],
+    ADD_ATTR: ['allow', 'allowfullscreen', 'frameborder', 'scrolling']
+  });
 }
 
 export function RichContentRenderer({ content, className = "" }: RichContentRendererProps) {
@@ -264,9 +264,7 @@ export function RichContentWithAds({
       const elements: React.ReactNode[] = [];
       let paragraphCount = 0;
       
-      // Calculate mid-point for an ad
-      const midPoint = Math.max(1, Math.floor(parts.length / 2));
-      const effectiveAdPositions = Array.from(new Set([...adPositions, midPoint]));
+      const effectiveAdPositions = [...adPositions].sort((a, b) => a - b);
 
       parts.forEach((part, index) => {
         if (part.trim()) {
@@ -286,7 +284,7 @@ export function RichContentWithAds({
           if (effectiveAdPositions.includes(paragraphCount)) {
             const adIndex = effectiveAdPositions.indexOf(paragraphCount);
             elements.push(
-              <div key={`ad-${index}`} className="my-6">
+              <div key={`ad-${index}`} className="my-6 flex justify-center w-full">
                 {renderAd(adIndex)}
               </div>
             );
@@ -303,9 +301,7 @@ export function RichContentWithAds({
     let paragraphCount = 0;
     let keyIndex = 0;
 
-    // Calculate mid-point for an ad
-    const midPoint = Math.max(1, Math.floor(lines.length / 2));
-    const effectiveAdPositions = Array.from(new Set([...adPositions, midPoint]));
+    const effectiveAdPositions = [...adPositions].sort((a, b) => a - b);
 
     lines.forEach((line) => {
       const trimmedLine = line.trim();
@@ -348,7 +344,7 @@ export function RichContentWithAds({
       if (effectiveAdPositions.includes(paragraphCount)) {
         const adIndex = effectiveAdPositions.indexOf(paragraphCount);
         elements.push(
-          <div key={`ad-${keyIndex++}`} className="my-6">
+          <div key={`ad-${keyIndex++}`} className="my-6 flex justify-center w-full">
             {renderAd(adIndex)}
           </div>
         );

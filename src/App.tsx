@@ -35,7 +35,16 @@ import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "@/components/theme-provider";
 import RealtimeTracker from "./components/RealtimeTracker";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 3, // Cache data for 3 minutes
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+  },
+});
 
 class GlobalErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
   constructor(props: {children: React.ReactNode}) {
@@ -49,15 +58,18 @@ class GlobalErrorBoundary extends React.Component<{children: React.ReactNode}, {
 
   render() {
     if (this.state.hasError) {
+      const isDev = import.meta.env.DEV;
       return (
         <div style={{ padding: '20px', backgroundColor: '#fee2e2', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <h1 style={{ color: '#b91c1c', fontSize: '24px', fontWeight: 'bold' }}>Application Crash</h1>
-          <p style={{ color: '#7f1d1d', margin: '10px 0' }}>An unexpected error occurred. Please provide this error message to the developer:</p>
-          <pre style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '5px', overflowX: 'auto', maxWidth: '80%', color: '#ef4444', border: '1px solid #fca5a5' }}>
-            {this.state.error?.toString()}
-            {'\n'}
-            {this.state.error?.stack}
-          </pre>
+          <h1 style={{ color: '#b91c1c', fontSize: '24px', fontWeight: 'bold' }}>একটি সমস্যা হয়েছে</h1>
+          <p style={{ color: '#7f1d1d', margin: '10px 0' }}>পেজটি লোড করতে সমস্যা হয়েছে। পেজটি রিফ্রেশ করুন।</p>
+          {isDev && (
+            <pre style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '5px', overflowX: 'auto', maxWidth: '80%', color: '#ef4444', border: '1px solid #fca5a5' }}>
+              {this.state.error?.toString()}
+              {'\n'}
+              {this.state.error?.stack}
+            </pre>
+          )}
         </div>
       );
     }

@@ -339,8 +339,6 @@ export function Header({ categories = [] }: HeaderProps) {
                  <span className="text-slate-300 hidden lg:block">|</span>
                  <Link to="/quran" className="hover:text-[#e6222b] transition-colors font-bold text-[#e6222b]">কুরআন পড়ুন</Link>
                  <span className="text-slate-300">|</span>
-                 <LanguageTranslator />
-                 <span className="text-slate-300">|</span>
                  
                  {/* Auth/Login */}
                  <div>
@@ -428,6 +426,10 @@ export function Header({ categories = [] }: HeaderProps) {
                      </DropdownMenu>
                    </div>
                  )}
+                 
+                 <div className="shrink-0 snap-start flex items-center h-full pl-2">
+                    <LanguageTranslator />
+                 </div>
                </nav>
                
                {/* Right: Search & Socials */}

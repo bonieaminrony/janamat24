@@ -30,15 +30,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background relative pb-16 md:pb-0">
-      {settings?.ad_system === "google" && (
-        <Helmet>
-          <script 
-            async 
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${settings?.google_client_id || 'ca-pub-1869371645821023'}`}
-            crossOrigin="anonymous"
-          ></script>
-        </Helmet>
-      )}
+
       <Header categories={categories} />
       
       <main className="flex-1 animate-fade-in">{children}</main>
