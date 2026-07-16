@@ -5,6 +5,22 @@ import json
 import re
 from urllib.parse import urlparse, parse_qs, unquote, quote
 import html
+import os
+
+# Load environment variables manually from .env file
+def load_env():
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    parts = line.split('=', 1)
+                    key = parts[0].strip()
+                    val = parts[1].strip().strip('"').strip("'")
+                    os.environ[key] = val
+
+load_env()
 
 PORT = 8000
 
@@ -273,6 +289,76 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
                     return
 
+        elif parsed_url.path == '/tts':
+            query = parse_qs(parsed_url.query)
+            if 'text' in query:
+                text_to_speak = query['text'][0]
+                
+                # Parse voice parameter (default is 'male')
+                voice_gender = query.get('voice', ['male'])[0]
+                voice_name = "bn-BD-NabanitaNeural" if voice_gender == "female" else "bn-BD-PradeepNeural"
+                
+                # 1. Try Microsoft Edge Premium Free Neural TTS
+                try:
+                    import asyncio
+                    import edge_tts
+                    
+                    # Create and set a new event loop to avoid Windows closed-loop errors
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    
+                    communicate = edge_tts.Communicate(text_to_speak, voice_name)
+                    audio_data = []
+                    
+                    async def collect_audio():
+                        async for chunk in communicate.stream():
+                            if chunk.get("data"):
+                                audio_data.append(chunk["data"])
+                    
+                    try:
+                        loop.run_until_complete(collect_audio())
+                    finally:
+                        loop.close()
+                        
+                    mp3_data = b"".join(audio_data)
+                    
+                    if mp3_data:
+                        self.send_response(200)
+                        self.send_header('Content-type', 'audio/mpeg')
+                        self.send_header('Content-Length', str(len(mp3_data)))
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(mp3_data)
+                        return
+                except Exception as edge_err:
+                    print(f"Edge TTS failed, falling back to Google: {edge_err}")
+                
+                # 2. Google Translate free TTS fallback
+                try:
+                    encoded_text = quote(text_to_speak)
+                    tts_url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl=bn&client=tw-ob&q={encoded_text}"
+                    
+                    req = urllib.request.Request(tts_url, headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+                        'Accept': '*/*',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                        'Connection': 'keep-alive',
+                    })
+                    
+                    with urllib.request.urlopen(req, timeout=10) as response:
+                        self.send_response(200)
+                        self.send_header('Content-type', response.headers.get('Content-type', 'audio/mpeg'))
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(response.read())
+                        return
+                except Exception as e:
+                    self.send_response(500)
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(str(e).encode('utf-8'))
+                    return
+
         elif parsed_url.path == '/proxy-image':
             query = parse_qs(parsed_url.query)
             if 'url' in query:
@@ -303,6 +389,9 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     
         return super().do_GET()
 
-with socketserver.TCPServer(("", PORT), ProxyHTTPRequestHandler) as httpd:
+class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    daemon_threads = True
+
+with ThreadingTCPServer(("", PORT), ProxyHTTPRequestHandler) as httpd:
     print(f"Serving at port {PORT}")
     httpd.serve_forever()

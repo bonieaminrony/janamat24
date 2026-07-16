@@ -24,6 +24,7 @@ import { ReadingProgress } from "@/components/ui/reading-progress";
 import { TabbedNewsWidget } from "@/components/widgets/TabbedNewsWidget";
 import { NewsletterWidget } from "@/components/widgets/NewsletterWidget";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { AudioReader } from "@/components/news/AudioReader";
 
 interface Article {
   id: string;
@@ -443,18 +444,12 @@ const NewsDetailPage = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center bg-muted/10 rounded-sm p-1 hidden sm:flex border border-border">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-sm" onClick={() => setFontSize(prev => Math.max(14, prev - 2))}>
-                      <Minus className="w-3.5 h-3.5" />
-                    </Button>
-                    <div className="flex items-center px-2 text-xs font-black border-x border-border/50 mx-1">
-                      <Type className="w-3 h-3 mr-1" />
-                      {toBanglaNumber(fontSize)}
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-sm" onClick={() => setFontSize(prev => Math.min(32, prev + 2))}>
-                      <Plus className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
+                  {/* Inline Audio Player instead of Font Size Controls */}
+                  <AudioReader 
+                    title={article.title}
+                    excerpt={article.excerpt}
+                    content={article.content}
+                  />
                   
                   <Button variant={isBookmarked ? "default" : "outline"} size="sm" className="rounded-sm gap-2 border-border/50" onClick={handleBookmark}>
                     {isBookmarked ? <Check className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
@@ -467,6 +462,8 @@ const NewsDetailPage = () => {
                   </Button>
                 </div>
               </div>
+
+
 
               {/* Image */}
               {article.image_url && (
@@ -577,6 +574,8 @@ const NewsDetailPage = () => {
                         </div>
                       </div>
                     </div>
+
+
 
                     {/* Image */}
                     {nextArticle.image_url && (
