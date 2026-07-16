@@ -8,6 +8,20 @@ interface AudioReaderProps {
   content: string | null;
 }
 
+interface CustomWindow extends Window {
+  currentJanamatAudio?: HTMLAudioElement | null;
+}
+
+const getGlobalAudio = (): HTMLAudioElement | null => {
+  if (typeof window === "undefined") return null;
+  return (window as unknown as CustomWindow).currentJanamatAudio || null;
+};
+
+const setGlobalAudio = (audio: HTMLAudioElement | null) => {
+  if (typeof window === "undefined") return;
+  (window as unknown as CustomWindow).currentJanamatAudio = audio;
+};
+
 export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -62,8 +76,8 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
       clean = doc.body.textContent || doc.body.innerText || clean;
 
       // 7. Remove symbols that synthesizers read aloud (slashes, stars, hashtags, etc.)
-      clean = clean.replace(/[\/\\]/g, " ");
-      clean = clean.replace(/[\*\_#`~]/g, " ");
+      clean = clean.replace(/\//g, " ").replace(/\\/g, " ");
+      clean = clean.replace(/[*_#`~]/g, " ");
 
       // 8. Clean extra spaces
       return clean.replace(/\s+/g, " ").trim();
@@ -72,7 +86,7 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
       return text
         .replace(/<[^>]+>/g, " ")
         .replace(/https?:\/\/[^\s<>"{}|\\^`[\]]+/gi, " ")
-        .replace(/[\/\\]/g, " ")
+        .replace(/\//g, " ").replace(/\\/g, " ")
         .replace(/\s+/g, " ")
         .trim();
     }
@@ -81,13 +95,13 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
   // Split text into neural TTS friendly chunks (max 800 characters for smooth, continuous flow)
   const splitIntoSpeechChunks = (textToSplit: string, maxLen = 800) => {
     const sentences = textToSplit
-      .split(/[।\.!\?]+/)
+      .split(/[।.!?]+/)
       .map((s) => s.trim())
       .filter((s) => s.length > 1);
 
     const resultChunks: string[] = [];
 
-    for (let sentence of sentences) {
+    for (const sentence of sentences) {
       if (sentence.length <= maxLen) {
         resultChunks.push(sentence);
       } else {
@@ -129,11 +143,13 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
       audioRef.current.pause();
       audioRef.current = null;
     }
-    if (typeof window !== "undefined" && (window as any).currentJanamatAudio) {
-      (window as any).currentJanamatAudio.onended = null;
-      (window as any).currentJanamatAudio.onerror = null;
-      (window as any).currentJanamatAudio.pause();
-      (window as any).currentJanamatAudio = null;
+    
+    const globalAudio = getGlobalAudio();
+    if (globalAudio) {
+      globalAudio.onended = null;
+      globalAudio.onerror = null;
+      globalAudio.pause();
+      setGlobalAudio(null);
     }
 
     // 3. Set up the new content
@@ -154,11 +170,13 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
         audioRef.current.pause();
         audioRef.current = null;
       }
-      if (typeof window !== "undefined" && (window as any).currentJanamatAudio) {
-        (window as any).currentJanamatAudio.onended = null;
-        (window as any).currentJanamatAudio.onerror = null;
-        (window as any).currentJanamatAudio.pause();
-        (window as any).currentJanamatAudio = null;
+      
+      const unmountGlobalAudio = getGlobalAudio();
+      if (unmountGlobalAudio) {
+        unmountGlobalAudio.onended = null;
+        unmountGlobalAudio.onerror = null;
+        unmountGlobalAudio.pause();
+        setGlobalAudio(null);
       }
     };
   }, [title, excerpt, content]);
@@ -178,8 +196,9 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
     // Play via local python proxy to bypass CORS/Referrer blocks (cache-busted with voice parameter)
     const url = `http://localhost:8000/tts?text=${encodeURIComponent(chunk)}&voice=${voiceGenderRef.current}&t=${Date.now()}`;
 
-    if (typeof window !== "undefined" && (window as any).currentJanamatAudio) {
-      (window as any).currentJanamatAudio.pause();
+    const prevGlobalAudio = getGlobalAudio();
+    if (prevGlobalAudio) {
+      prevGlobalAudio.pause();
     }
 
     if (audioRef.current) {
@@ -187,9 +206,8 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
     }
 
     const audio = new Audio(url);
-    if (typeof window !== "undefined") {
-      (window as any).currentJanamatAudio = audio;
-    }
+    setGlobalAudio(audio);
+    
     audio.playbackRate = speedRef.current;
     audio.onloadedmetadata = () => {
       audio.playbackRate = speedRef.current;
@@ -210,8 +228,9 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
       
       const fallbackUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=bn&client=tw-ob&q=${encodeURIComponent(chunk)}&t=${Date.now()}`;
       
-      if (typeof window !== "undefined" && (window as any).currentJanamatAudio) {
-        (window as any).currentJanamatAudio.pause();
+      const errorGlobalAudio = getGlobalAudio();
+      if (errorGlobalAudio) {
+        errorGlobalAudio.pause();
       }
 
       if (audioRef.current) {
@@ -219,9 +238,8 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
       }
 
       const fallbackAudio = new Audio(fallbackUrl);
-      if (typeof window !== "undefined") {
-        (window as any).currentJanamatAudio = fallbackAudio;
-      }
+      setGlobalAudio(fallbackAudio);
+      
       try {
         // Bypass Google's referrer block by omitting referrer
         fallbackAudio.referrerPolicy = "no-referrer";
@@ -256,7 +274,7 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
       console.warn("Proxy play trigger failed, calling fallback:", err);
       // Fallback directly
       if (audio.onerror) {
-        audio.onerror(new Event("error") as any);
+        audio.onerror(new Event("error") as unknown as ErrorEvent);
       }
     });
   };
@@ -269,14 +287,13 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
       isPlayingRef.current = true;
       isPausedRef.current = false;
       
-      if (typeof window !== "undefined" && (window as any).currentJanamatAudio && (window as any).currentJanamatAudio !== audioRef.current) {
-        (window as any).currentJanamatAudio.pause();
+      const currentGlobalAudio = getGlobalAudio();
+      if (currentGlobalAudio && currentGlobalAudio !== audioRef.current) {
+        currentGlobalAudio.pause();
       }
 
       if (audioRef.current) {
-        if (typeof window !== "undefined") {
-          (window as any).currentJanamatAudio = audioRef.current;
-        }
+        setGlobalAudio(audioRef.current);
         audioRef.current.playbackRate = speedRef.current;
         audioRef.current.play().catch((err) => {
           console.error("Failed to resume audio:", err);
@@ -297,8 +314,9 @@ export function AudioReader({ title, excerpt, content }: AudioReaderProps) {
     if (audioRef.current) {
       audioRef.current.pause();
     }
-    if (typeof window !== "undefined" && (window as any).currentJanamatAudio === audioRef.current) {
-      (window as any).currentJanamatAudio.pause();
+    const currentGlobalAudio = getGlobalAudio();
+    if (currentGlobalAudio === audioRef.current && currentGlobalAudio) {
+      currentGlobalAudio.pause();
     }
   };
 
