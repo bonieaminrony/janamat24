@@ -292,7 +292,7 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         elif parsed_url.path == '/tts':
             query = parse_qs(parsed_url.query)
             if 'text' in query:
-                text_to_speak = query['text'][0]
+                text_to_speak = query['text'][0][:1000]
                 
                 # Parse voice parameter (default is 'male')
                 voice_gender = query.get('voice', ['male'])[0]
