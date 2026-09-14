@@ -6,16 +6,16 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatBanglaDateFull, formatBanglaRelativeTime, formatBanglaReadingTime, decodeBanglaText, toBanglaNumber } from "@/lib/bangla-utils";
+import { formatBanglaDateFull, formatBanglaRelativeTime, decodeBanglaText, toBanglaNumber } from "@/lib/bangla-utils";
 import { sanitizeImageUrl } from "@/lib/url-utils";
-import { Calendar, Clock, BookOpen, ArrowLeft, Share2, Bookmark, ChevronRight, Eye, User, Printer, Minus, Plus, Type, Check } from "lucide-react";
+import { prefetchArticle } from "@/lib/query-client";
+import { Calendar, Clock, BookOpen, Share2, Bookmark, ChevronRight, User, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React, { useEffect, useState } from "react";
 import { SocialShare } from "@/components/social/SocialShare";
 import { SocialFloatingBar } from "@/components/social/SocialFloatingBar";
 import { toast } from "sonner";
 import { SEOHead } from "@/components/seo/SEOHead";
-import { ArticleJsonLd } from "@/components/seo/ArticleJsonLd";
 import { AuthorBox } from "@/components/news/AuthorBox";
 import { UniversalAdBanner } from "@/components/ads/UniversalAdBanner";
 import { CommentsSection } from "@/components/news/CommentsSection";
@@ -61,8 +61,76 @@ interface BookmarkItem {
   published_at: string | null;
 }
 
+function NewsDetailSkeleton() {
+  return (
+    <PublicLayout>
+      <div className="container py-6 md:py-10">
+        <div className="max-w-7xl mx-auto">
+          {/* Breadcrumb Skeleton */}
+          <div className="flex items-center gap-2 mb-8">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-4 rounded-full" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-4 rounded-full" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="lg:col-span-8">
+              {/* Title Skeleton */}
+              <Skeleton className="h-10 sm:h-12 w-full mb-3" />
+              <Skeleton className="h-8 sm:h-10 w-3/4 mb-8" />
+
+              {/* Author bar Skeleton */}
+              <div className="flex items-center justify-between gap-4 mb-8 pb-6 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="w-12 h-12 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-9 w-24 rounded-full" />
+                  <Skeleton className="h-9 w-20 rounded-sm" />
+                </div>
+              </div>
+
+              {/* Image Skeleton */}
+              <Skeleton className="aspect-video w-full rounded-lg mb-8" />
+
+              {/* Excerpt Skeleton */}
+              <Skeleton className="h-6 w-full mb-3" />
+              <Skeleton className="h-6 w-4/5 mb-8" />
+
+              {/* Body Skeletons */}
+              <div className="space-y-4 max-w-[92%] mx-auto">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-11/12" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-28 w-full rounded-xl my-6" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
+            </div>
+
+            {/* Sidebar Skeleton */}
+            <aside className="lg:col-span-4 space-y-8">
+              <Skeleton className="h-48 w-full rounded-2xl" />
+              <Skeleton className="h-80 w-full rounded-2xl" />
+            </aside>
+          </div>
+        </div>
+      </div>
+    </PublicLayout>
+  );
+}
+
 const NewsDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const decodedSlug = decodeBanglaText(slug || "");
   const location = useLocation();
   const fullUrl = `${window.location.origin}${location.pathname}`;
   
@@ -71,14 +139,50 @@ const NewsDetailPage = () => {
   const [fontSize, setFontSize] = useState(20);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
+  // Instant Cache Hydration: Retrieve cached article or preview from localStorage/sessionStorage
+  const getInitialArticleData = (): Article | undefined => {
+    if (!slug) return undefined;
+    try {
+      const cached = sessionStorage.getItem(`janamt_art_${decodedSlug}`);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+      const homeCache = localStorage.getItem("janamt_latest_news_cache");
+      if (homeCache) {
+        const list = JSON.parse(homeCache);
+        if (Array.isArray(list)) {
+          const match = list.find((n: any) => n.slug === decodedSlug || n.slug === slug);
+          if (match) {
+            return {
+              id: match.id,
+              title: decodeBanglaText(match.title),
+              slug: match.slug,
+              kicker: match.kicker || null,
+              content: match.content ? decodeBanglaText(match.content) : null,
+              excerpt: match.excerpt ? decodeBanglaText(match.excerpt) : null,
+              image_url: match.image_url,
+              category_id: match.category_id || null,
+              author_id: match.author_id || null,
+              published_at: match.published_at,
+              categories: match.categories || null,
+            };
+          }
+        }
+      }
+    } catch (e) {}
+    return undefined;
+  };
+
   const { data: article, isLoading, isError, refetch } = useQuery<Article | null>({
     queryKey: ["news-detail", slug],
+    initialData: getInitialArticleData,
+    staleTime: 1000 * 60 * 5, // 5 minutes
     queryFn: async () => {
       const fetchPromise = (async () => {
         const { data, error } = await supabase
           .from("news")
-          .select("*, categories(name, slug)")
-          .eq("slug", decodeBanglaText(slug))
+          .select("id, title, slug, kicker, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
+          .eq("slug", decodedSlug)
           .eq("status", "published")
           .limit(1)
           .maybeSingle();
@@ -91,6 +195,9 @@ const NewsDetailPage = () => {
           if (data.categories) {
             data.categories.name = decodeBanglaText(data.categories.name);
           }
+          try {
+            sessionStorage.setItem(`janamt_art_${decodedSlug}`, JSON.stringify(data));
+          } catch (e) {}
         }
         return data as unknown as Article;
       })();
@@ -100,6 +207,7 @@ const NewsDetailPage = () => {
 
   const { data: author } = useQuery<Author | null>({
     queryKey: ["author", article?.author_id],
+    staleTime: 1000 * 60 * 30, // 30 minutes
     queryFn: async () => {
       const fetchPromise = (async () => {
         const { data, error } = await supabase
@@ -117,6 +225,7 @@ const NewsDetailPage = () => {
 
   const { data: relatedNews = [] } = useQuery({
     queryKey: ["related-news", article?.category_id],
+    staleTime: 1000 * 60 * 10,
     queryFn: async () => {
       const fetchPromise = (async () => {
         const { data, error } = await supabase
@@ -135,9 +244,22 @@ const NewsDetailPage = () => {
     enabled: !!article?.category_id,
   });
 
-  // Fetch block news for Tabbed Widget
+  // Fetch block news for Tabbed Widget with instant cache fallback
+  const getInitialBlockNews = () => {
+    try {
+      const cached = localStorage.getItem("janamt_latest_news_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.slice(0, 16);
+      }
+    } catch (e) {}
+    return [];
+  };
+
   const { data: blockNews = [] } = useQuery({
     queryKey: ["block-news-detail"],
+    initialData: getInitialBlockNews,
+    staleTime: 1000 * 60 * 5,
     queryFn: async () => {
       const fetchPromise = (async () => {
         const { data, error } = await supabase
@@ -156,6 +278,7 @@ const NewsDetailPage = () => {
   // Fetch next article (second article on the page)
   const { data: nextArticle } = useQuery<Article | null>({
     queryKey: ["next-article", article?.id, settings?.second_article_id],
+    staleTime: 1000 * 60 * 10,
     queryFn: async () => {
       if (!article) return null;
       
@@ -166,7 +289,7 @@ const NewsDetailPage = () => {
         if (settings?.second_article_id) {
           const { data, error } = await supabase
             .from("news")
-            .select("*, categories(name, slug)")
+            .select("id, title, slug, kicker, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
             .eq("id", settings.second_article_id)
             .eq("status", "published")
             .maybeSingle();
@@ -180,7 +303,7 @@ const NewsDetailPage = () => {
         if (!nextData) {
           const { data, error } = await supabase
             .from("news")
-            .select("*, categories(name, slug)")
+            .select("id, title, slug, kicker, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
             .eq("status", "published")
             .eq("category_id", article.category_id)
             .neq("id", article.id)
@@ -197,7 +320,7 @@ const NewsDetailPage = () => {
         if (!nextData) {
           const { data, error } = await supabase
             .from("news")
-            .select("*, categories(name, slug)")
+            .select("id, title, slug, kicker, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
             .eq("status", "published")
             .neq("id", article.id)
             .order("published_at", { ascending: false })
@@ -228,6 +351,7 @@ const NewsDetailPage = () => {
 
   const { data: nextAuthor } = useQuery<Author | null>({
     queryKey: ["next-author", nextArticle?.author_id],
+    staleTime: 1000 * 60 * 30,
     queryFn: async () => {
       const fetchPromise = (async () => {
         const { data, error } = await supabase
@@ -259,11 +383,9 @@ const NewsDetailPage = () => {
       const sessionId = crypto.randomUUID();
       supabase.functions.invoke('track-news-view', {
         body: { news_id: article.id, session_id: sessionId }
-      });
+      }).catch(() => {});
     }
   }, [article?.id]);
-
-  const handlePrint = () => window.print();
 
   const handleBookmark = () => {
     if (!article) return;
@@ -304,7 +426,7 @@ const NewsDetailPage = () => {
     }
   };
 
-  if (isError) {
+  if (isError && !article) {
     return (
       <PublicLayout>
         <div className="container py-24 text-center max-w-xl mx-auto">
@@ -323,13 +445,9 @@ const NewsDetailPage = () => {
     );
   }
 
-  if (isLoading) {
-    return (
-      <PublicLayout>
-        <article className="container py-8 max-w-6xl mx-auto min-h-[50vh]">
-        </article>
-      </PublicLayout>
-    );
+  // Show detailed skeleton only if we have NO cached article at all
+  if (isLoading && !article) {
+    return <NewsDetailSkeleton />;
   }
 
   if (!article) {
@@ -344,9 +462,6 @@ const NewsDetailPage = () => {
       </PublicLayout>
     );
   }
-
-  const isUpdated = article?.updated_at && article?.published_at &&
-    new Date(article.updated_at).getTime() - new Date(article.published_at).getTime() > 60000;
 
   const getImageUrlAndCaption = (url: string | null) => {
     if (!url) return { src: '', caption: '', kicker: '' };
@@ -444,7 +559,7 @@ const NewsDetailPage = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Inline Audio Player instead of Font Size Controls */}
+                  {/* Inline Audio Player */}
                   <AudioReader 
                     title={article.title}
                     excerpt={article.excerpt}
@@ -462,8 +577,6 @@ const NewsDetailPage = () => {
                   </Button>
                 </div>
               </div>
-
-
 
               {/* Image */}
               {article.image_url && (
@@ -489,28 +602,41 @@ const NewsDetailPage = () => {
                   {article.excerpt}
                 </div>
               )}
-              <div className="prose-article leading-relaxed text-justify mx-auto w-full max-w-[92%]" style={{ fontSize: `${fontSize}px` }}>
-                <RichContentWithAds
-                  content={article.content || ""}
-                  renderAd={(index: number) => (
-                    <UniversalAdBanner 
-                      placement="article_inline" 
-                      slot={index === 0 ? "9876543210" : index === 1 ? "multi-level-middle" : "multi-level"} 
-                      index={index} 
-                      className={cn(
-                        "my-8",
-                        index === 0 
-                          ? "flex flex-col gap-4 py-6 border-y border-dashed border-border/50 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl items-center justify-center relative w-full md:w-1/2"
-                          : "w-full md:w-1/2 block"
-                      )} 
-                      style={{ marginLeft: 0, marginRight: 0 }}
-                    />
-                  )}
-                  adPositions={getAdPositions(article.content)}
-                />
-              </div>
 
-              {/* Bottom Card Ad (Matches Header Ad) */}
+              {article.content ? (
+                <div className="prose-article leading-relaxed text-justify mx-auto w-full max-w-[92%]" style={{ fontSize: `${fontSize}px` }}>
+                  <RichContentWithAds
+                    content={article.content || ""}
+                    renderAd={(index: number) => (
+                      <UniversalAdBanner 
+                        placement="article_inline" 
+                        slot={index === 0 ? "9876543210" : index === 1 ? "multi-level-middle" : "multi-level"} 
+                        index={index} 
+                        className={cn(
+                          "my-8",
+                          index === 0 
+                            ? "flex flex-col gap-4 py-6 border-y border-dashed border-border/50 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl items-center justify-center relative w-full md:w-1/2"
+                            : "w-full md:w-1/2 block"
+                        )} 
+                        style={{ marginLeft: 0, marginRight: 0 }}
+                      />
+                    )}
+                    adPositions={getAdPositions(article.content)}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-4 max-w-[92%] mx-auto my-8">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-11/12" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-32 w-full rounded-xl" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                </div>
+              )}
+
+              {/* Bottom Card Ad */}
               <div className="mt-12 mb-6 border border-border rounded-xl shadow-sm overflow-hidden bg-slate-50 dark:bg-slate-900/20 p-2">
                 <UniversalAdBanner 
                    placement="header" 
@@ -525,10 +651,6 @@ const NewsDetailPage = () => {
                 <SocialShare url={fullUrl} title={article.title} />
               </div>
 
-
-
-
-
               <CommentsSection newsId={article.id} authorId={article.author_id} />
 
               {/* Second Article Container */}
@@ -539,16 +661,14 @@ const NewsDetailPage = () => {
                 return (
                   <div className="mt-20 pt-16 border-t-[6px] border-double border-slate-200 dark:border-slate-800">
                     <div className="bg-primary/5 text-primary dark:bg-primary/10 dark:text-primary-foreground text-center py-3.5 rounded-2xl mb-12 font-black text-sm uppercase tracking-[0.2em] border border-primary/10">
-                      ৩ নাম্বার নিউজ
+                      পরবর্তী সংবাদ
                     </div>
 
-                    {/* Title */}
                     <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-headline leading-tight mb-8">
                       {nextDisplayKicker && <span className="block text-xl md:text-2xl text-muted-foreground font-semibold mb-2">{nextDisplayKicker}</span>}
                       {nextArticle.title}
                     </h1>
 
-                    {/* Meta bar */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 pb-6 border-b border-border">
                       <div className="flex items-center gap-4">
                         {nextAuthor?.avatar_url ? (
@@ -575,9 +695,6 @@ const NewsDetailPage = () => {
                       </div>
                     </div>
 
-
-
-                    {/* Image */}
                     {nextArticle.image_url && (
                       <div className="mb-12">
                         <div className="relative aspect-video w-full overflow-hidden border border-border bg-muted group rounded-lg">
@@ -595,12 +712,12 @@ const NewsDetailPage = () => {
                       </div>
                     )}
 
-                    {/* Content */}
                     {nextArticle.excerpt && (
                       <div className="text-xl font-medium text-slate-700 dark:text-slate-300 leading-relaxed mb-8 border-l-4 border-primary pl-4">
                         {nextArticle.excerpt}
                       </div>
                     )}
+                    
                     <div className="prose-article leading-relaxed text-justify mx-auto w-full max-w-[92%]" style={{ fontSize: `${fontSize}px` }}>
                       <RichContentWithAds
                         content={nextArticle.content || ""}
@@ -622,12 +739,10 @@ const NewsDetailPage = () => {
                       />
                     </div>
 
-                    {/* Social Share Bottom */}
                     <div className="mb-12 py-6 border-y border-border">
                       <SocialShare url={`${window.location.origin}/news/${nextArticle.slug}`} title={nextArticle.title} />
                     </div>
 
-                    {/* Comments Section */}
                     <CommentsSection newsId={nextArticle.id} authorId={nextArticle.author_id} />
                   </div>
                 );
@@ -639,7 +754,7 @@ const NewsDetailPage = () => {
               <UniversalAdBanner placement="sidebar" className="rounded-3xl shadow-sm" />
               <TabbedNewsWidget 
                 latestNews={blockNews} 
-                popularNews={blockNews} // You can also fetch popular specifically if needed
+                popularNews={blockNews}
               />
               <div className="sticky top-28 space-y-8">
                 <UniversalAdBanner placement="article_side" slot="3344556677" index={0} className="rounded-3xl shadow-sm" />
@@ -661,6 +776,8 @@ const NewsDetailPage = () => {
                   <React.Fragment key={news.id}>
                     <Link
                       to={`/news/${news.slug}`}
+                      onMouseEnter={() => prefetchArticle(news.slug)}
+                      onTouchStart={() => prefetchArticle(news.slug)}
                       className="group flex flex-col gap-3 pb-4 hover:bg-muted/10 transition-all duration-300 border-b lg:border-b-0 lg:border-r border-border last:border-0 last:pr-0 pr-4"
                     >
                       <div className="aspect-[16/10] w-full overflow-hidden bg-muted border border-border/20">

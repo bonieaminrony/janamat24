@@ -2,7 +2,8 @@ import React, { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/query-client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -38,18 +39,6 @@ const AdminProfile = lazy(() => import("./pages/admin/AdminProfile"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminSubscribers = lazy(() => import("./pages/admin/AdminSubscribers"));
 const AdminCardGenerator = lazy(() => import("./pages/admin/AdminCardGenerator"));
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
-      gcTime: 1000 * 60 * 30, // Keep cached in memory for 30 mins
-      retry: 1,
-      retryDelay: 1000,
-    },
-  },
-});
 
 class GlobalErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
   constructor(props: {children: React.ReactNode}) {

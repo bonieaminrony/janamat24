@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ChevronRight, Clock, Newspaper, Star } from "lucide-react";
 import { formatBanglaRelativeTime } from "@/lib/bangla-utils";
 import { sanitizeImageUrl } from "@/lib/url-utils";
+import { prefetchArticle } from "@/lib/query-client";
 import { UniversalAdBanner } from "@/components/ads/UniversalAdBanner";
 
 interface NewsItem {
@@ -24,6 +25,10 @@ interface CategoryBlockProps {
 
 export function CategoryBlock({ title, categorySlug, news, layout = "grid", showAds = false }: CategoryBlockProps) {
   if (!news || news.length === 0) return null;
+
+  const handlePrefetch = (slug?: string) => {
+    if (slug) prefetchArticle(slug);
+  };
 
   return (
     <div className="mb-0">
@@ -48,7 +53,13 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
           {news.slice(0, showAds ? 3 : 4).map((item) => {
             const imgUrl = sanitizeImageUrl(item.image_url);
             return (
-              <Link key={item.id} to={`/news/${item.slug}`} className="group flex flex-col gap-3">
+              <Link 
+                key={item.id} 
+                to={`/news/${item.slug}`} 
+                onMouseEnter={() => handlePrefetch(item.slug)}
+                onTouchStart={() => handlePrefetch(item.slug)}
+                className="group flex flex-col gap-3"
+              >
                 <div className="relative aspect-[4/3] bg-muted border border-border">
                   {imgUrl ? (
                     <img 
@@ -109,7 +120,12 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
           
           {/* Main Huge Featured Item (Col 7) */}
           <div className="lg:col-span-7 flex flex-col pr-0 lg:pr-2">
-            <Link to={`/news/${news[0].slug}`} className="group block">
+            <Link 
+              to={`/news/${news[0].slug}`} 
+              onMouseEnter={() => handlePrefetch(news[0].slug)}
+              onTouchStart={() => handlePrefetch(news[0].slug)}
+              className="group block"
+            >
               <div className="aspect-[16/10] w-full bg-muted border border-border mb-4 relative">
                 {sanitizeImageUrl(news[0].image_url) ? (
                   <img 
@@ -165,7 +181,13 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
             {news.slice(1, 5).map((item, idx) => {
               const secUrl = sanitizeImageUrl(item.image_url);
               return (
-                <Link key={item.id} to={`/news/${item.slug}`} className={`group flex gap-4 ${idx > 0 ? "pt-5" : "pb-5 first:pt-0"} pb-5 last:pb-0`}>
+                <Link 
+                  key={item.id} 
+                  to={`/news/${item.slug}`} 
+                  onMouseEnter={() => handlePrefetch(item.slug)}
+                  onTouchStart={() => handlePrefetch(item.slug)}
+                  className={`group flex gap-4 ${idx > 0 ? "pt-5" : "pb-5 first:pt-0"} pb-5 last:pb-0`}
+                >
                   <div className="w-[120px] shrink-0">
                     <div className="aspect-[4/3] bg-muted border border-border relative">
                       {secUrl ? (

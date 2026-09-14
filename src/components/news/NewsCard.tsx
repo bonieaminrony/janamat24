@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, Eye, Share2, BookOpen, ArrowRight, Bookmark } from "lucide-react";
 import { formatBanglaRelativeTime, toBanglaNumber } from "@/lib/bangla-utils";
 import { sanitizeImageUrl } from "@/lib/url-utils";
+import { prefetchArticle } from "@/lib/query-client";
 import { cn } from "@/lib/utils";
 
 interface NewsCardProps {
@@ -40,11 +41,17 @@ export function NewsCard({
   
   // Safely extract category data if it comes as an array from Supabase
   const categoryData = Array.isArray(category) ? category[0] : category;
+
+  const handlePrefetch = () => {
+    prefetchArticle(slug);
+  };
   
   if (variant === "compact") {
     return (
       <Link
         to={`/news/${slug}`}
+        onMouseEnter={handlePrefetch}
+        onTouchStart={handlePrefetch}
         className="group flex flex-col gap-2 py-4 border-b border-border last:border-0 hover:bg-muted/10 px-2 -mx-2 transition-colors duration-200"
       >
         <div className="flex-1 min-w-0">
@@ -77,6 +84,8 @@ export function NewsCard({
     return (
       <Link
         to={`/news/${slug}`}
+        onMouseEnter={handlePrefetch}
+        onTouchStart={handlePrefetch}
         className="group flex flex-col sm:flex-row gap-4 sm:gap-6 py-6 border-b border-border/60 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors duration-200 px-2 sm:px-4 -mx-2 sm:-mx-4 last:border-0"
       >
         {safeImageUrl ? (
@@ -116,6 +125,8 @@ export function NewsCard({
   return (
     <Link
       to={`/news/${slug}`}
+      onMouseEnter={handlePrefetch}
+      onTouchStart={handlePrefetch}
       className="group block bg-white dark:bg-slate-900 border border-border hover:border-primary/30 transition-colors duration-300 overflow-hidden flex flex-col h-full"
     >
       <div className="aspect-[16/10] overflow-hidden relative">
@@ -131,8 +142,6 @@ export function NewsCard({
             <span className="text-4xl text-muted-foreground/20 font-bold">জ</span>
           </div>
         )}
-        
-        {/* Category badge on image removed for cleaner look, handled below image */}
       </div>
       <div className="p-4 sm:p-5 flex flex-col flex-1">
         {categoryData && (

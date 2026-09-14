@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, TrendingUp, ChevronRight, Image as ImageIcon, Star } from "lucide-react";
 import { toBanglaNumber, formatBanglaRelativeTime } from "@/lib/bangla-utils";
 import { sanitizeImageUrl } from "@/lib/url-utils";
+import { prefetchArticle } from "@/lib/query-client";
 import { UniversalAdBanner } from "@/components/ads/UniversalAdBanner";
 
 interface NewsItem {
@@ -23,10 +24,16 @@ interface TabbedNewsWidgetProps {
 export function TabbedNewsWidget({ latestNews, popularNews }: TabbedNewsWidgetProps) {
   const [activeTab, setActiveTab] = useState("latest");
 
+  const handlePrefetch = (slug?: string) => {
+    if (slug) prefetchArticle(slug);
+  };
+
   const renderNewsItem = (news: NewsItem, index: number, isPopular: boolean) => (
     <Link
       key={news.id}
       to={`/news/${news.slug}`}
+      onMouseEnter={() => handlePrefetch(news.slug)}
+      onTouchStart={() => handlePrefetch(news.slug)}
       className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
     >
       <div className="relative w-20 h-14 shrink-0 overflow-hidden bg-muted rounded border border-border/50">
@@ -146,4 +153,3 @@ export function TabbedNewsWidget({ latestNews, popularNews }: TabbedNewsWidgetPr
     </div>
   );
 }
-

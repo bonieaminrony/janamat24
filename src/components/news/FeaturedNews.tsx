@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { formatBanglaRelativeTime, toBanglaNumber } from "@/lib/bangla-utils";
 import { sanitizeImageUrl } from "@/lib/url-utils";
+import { prefetchArticle } from "@/lib/query-client";
 import { Clock, TrendingUp, Newspaper, ChevronRight, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +45,10 @@ export function FeaturedNews({ news }: FeaturedNewsProps) {
     return item.categories;
   };
 
+  const handlePrefetch = (slug?: string) => {
+    if (slug) prefetchArticle(slug);
+  };
+
   return (
     <section className="mb-8 newspaper-border shadow-sm">
       <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-border">
@@ -54,6 +59,8 @@ export function FeaturedNews({ news }: FeaturedNewsProps) {
             <React.Fragment key={item.id}>
               <Link 
                 to={`/news/${item.slug}`} 
+                onMouseEnter={() => handlePrefetch(item.slug)}
+                onTouchStart={() => handlePrefetch(item.slug)}
                 className={cn("group flex flex-col gap-3", idx > 0 ? "pt-5" : "pb-5 first:pt-0")}
               >
                 <h3 className="text-lg font-bold text-headline leading-snug group-hover:text-primary transition-colors line-clamp-3">
@@ -91,7 +98,12 @@ export function FeaturedNews({ news }: FeaturedNewsProps) {
 
         {/* CENTER COLUMN - Main Lead & Sub-leads (Col 6) */}
         <div className="lg:col-span-6 p-4 md:p-6 flex flex-col order-1 lg:order-2">
-           <Link to={`/news/${leadNews.slug}`} className="group block mb-6">
+           <Link 
+             to={`/news/${leadNews.slug}`} 
+             onMouseEnter={() => handlePrefetch(leadNews.slug)}
+             onTouchStart={() => handlePrefetch(leadNews.slug)}
+             className="group block mb-6"
+           >
               <div className="relative aspect-[16/10] overflow-hidden mb-5 bg-muted">
                 {sanitizeImageUrl(leadNews.image_url) ? (
                   <img
@@ -131,7 +143,13 @@ export function FeaturedNews({ news }: FeaturedNewsProps) {
            {/* Sub-leads directly below the main lead */}
            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-border mt-auto">
               {subLeadNews.map(item => (
-                <Link key={item.id} to={`/news/${item.slug}`} className="group flex flex-col gap-3">
+                <Link 
+                  key={item.id} 
+                  to={`/news/${item.slug}`} 
+                  onMouseEnter={() => handlePrefetch(item.slug)}
+                  onTouchStart={() => handlePrefetch(item.slug)}
+                  className="group flex flex-col gap-3"
+                >
                   <div className="aspect-[16/9] overflow-hidden bg-muted">
                      {sanitizeImageUrl(item.image_url) ? (
                         <img src={sanitizeImageUrl(item.image_url)!} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -159,6 +177,8 @@ export function FeaturedNews({ news }: FeaturedNewsProps) {
               <React.Fragment key={item.id}>
                 <Link 
                   to={`/news/${item.slug}`} 
+                  onMouseEnter={() => handlePrefetch(item.slug)}
+                  onTouchStart={() => handlePrefetch(item.slug)}
                   className="group py-4 first:pt-1 last:pb-2 border-transparent border-l-2 hover:border-primary hover:bg-white dark:hover:bg-slate-800 transition-all pl-2 -ml-2"
                 >
                   <div className="flex gap-4 items-start">
