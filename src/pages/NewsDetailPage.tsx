@@ -181,7 +181,7 @@ const NewsDetailPage = () => {
       const fetchPromise = (async () => {
         const { data, error } = await supabase
           .from("news")
-          .select("id, title, slug, kicker, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
+          .select("id, title, slug, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
           .eq("slug", decodedSlug)
           .eq("status", "published")
           .limit(1)
@@ -289,7 +289,7 @@ const NewsDetailPage = () => {
         if (settings?.second_article_id) {
           const { data, error } = await supabase
             .from("news")
-            .select("id, title, slug, kicker, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
+            .select("id, title, slug, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
             .eq("id", settings.second_article_id)
             .eq("status", "published")
             .maybeSingle();
@@ -303,7 +303,7 @@ const NewsDetailPage = () => {
         if (!nextData) {
           const { data, error } = await supabase
             .from("news")
-            .select("id, title, slug, kicker, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
+            .select("id, title, slug, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
             .eq("status", "published")
             .eq("category_id", article.category_id)
             .neq("id", article.id)
@@ -320,7 +320,7 @@ const NewsDetailPage = () => {
         if (!nextData) {
           const { data, error } = await supabase
             .from("news")
-            .select("id, title, slug, kicker, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
+            .select("id, title, slug, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
             .eq("status", "published")
             .neq("id", article.id)
             .order("published_at", { ascending: false })

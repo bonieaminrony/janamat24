@@ -28,7 +28,7 @@ export function prefetchArticle(slug?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("news")
-        .select("id, title, slug, kicker, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
+        .select("id, title, slug, content, excerpt, image_url, category_id, author_id, published_at, updated_at, categories(name, slug)")
         .eq("slug", decodedSlug)
         .eq("status", "published")
         .limit(1)
