@@ -16,14 +16,36 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <!-- Bengali Fonts - Lightweight, High-performance Loading -->
-  <link
-    href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap"
-    rel="stylesheet">
+  <!-- Bengali Fonts - High performance non-blocking load -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap">
+  </noscript>
 
-  <!-- Google AdSense (Loaded deferred to preserve 90+ PageSpeed score) -->
-  <script defer src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1869371645821023"
-     crossorigin="anonymous"></script>
+  <!-- Google AdSense - Lazy loaded to ensure 90+ PageSpeed & instant FCP -->
+  <script>
+    (function() {
+      var loaded = false;
+      function loadAdSense() {
+        if (loaded) return;
+        loaded = true;
+        var s = document.createElement('script');
+        s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1869371645821023";
+        s.async = true;
+        s.crossOrigin = "anonymous";
+        document.head.appendChild(s);
+      }
+      if (window.requestIdleCallback) {
+        requestIdleCallback(function() { setTimeout(loadAdSense, 2000); });
+      } else {
+        window.addEventListener('load', function() { setTimeout(loadAdSense, 2000); });
+      }
+      ['scroll', 'touchstart', 'mousemove', 'keydown'].forEach(function(e) {
+        window.addEventListener(e, loadAdSense, { once: true, passive: true });
+      });
+    })();
+  </script>
 
   <!-- DEFAULT_OG_START -->
   <!-- Open Graph / Facebook -->
