@@ -79,6 +79,17 @@ const App = () => {
       const cleanUrl = url.pathname + url.search + url.hash;
       window.history.replaceState({}, document.title, cleanUrl);
     }
+
+    // Preload most common public routes in background during idle time
+    const preloadRoutes = () => {
+      import("./pages/NewsDetailPage");
+      import("./pages/CategoryPage");
+    };
+    if (window.requestIdleCallback) {
+      window.requestIdleCallback(preloadRoutes);
+    } else {
+      setTimeout(preloadRoutes, 1000);
+    }
   }, []);
 
   return (

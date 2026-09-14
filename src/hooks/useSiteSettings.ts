@@ -16,9 +16,16 @@ const CONFIG_NAME = "SYSTEM_CONFIG_DO_NOT_DELETE";
 export function useSiteSettings() {
   const queryClient = useQueryClient();
 
-  // Fetch settings from the ad_partners table using the website_url field as JSON storage
   const query = useQuery({
     queryKey: ["site-settings"],
+    initialData: () => {
+      try {
+        const cached = localStorage.getItem("janamt_site_settings");
+        if (cached) return JSON.parse(cached);
+      } catch (e) {}
+      return { ad_system: "manual", google_client_id: "ca-pub-1869371645821023", fb_page_id: "", fb_access_token: "" } as SiteSettings;
+    },
+    staleTime: 1000 * 60 * 30, // 30 minutes cache
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ad_partners")
@@ -27,11 +34,9 @@ export function useSiteSettings() {
         .maybeSingle();
 
       if (error) {
-        console.error("Failed to fetch settings config:", error);
         return { ad_system: "manual", google_client_id: "ca-pub-1869371645821023", fb_page_id: "", fb_access_token: "" } as SiteSettings; 
       }
 
-      // If configuration doesn't exist yet, return default
       if (!data) {
         return { ad_system: "manual", google_client_id: "ca-pub-1869371645821023", fb_page_id: "", fb_access_token: "" } as SiteSettings;
       }
@@ -39,31 +44,30 @@ export function useSiteSettings() {
       try {
         if (data.website_url) {
           const parsed = JSON.parse(data.website_url);
-          return { 
+          const result = { 
             ad_system: parsed.ad_system || "manual",
             google_client_id: parsed.google_client_id || "ca-pub-1869371645821023",
             fb_page_id: parsed.fb_page_id || "",
             fb_access_token: parsed.fb_access_token || "",
             second_article_id: parsed.second_article_id || ""
           } as SiteSettings;
+          try {
+            localStorage.setItem("janamt_site_settings", JSON.stringify(result));
+          } catch (e) {}
+          return result;
         }
-      } catch (e) {
-        console.error("Failed to parse settings JSON:", e);
-      }
+      } catch (e) {}
       
       return { ad_system: "manual", google_client_id: "ca-pub-1869371645821023", fb_page_id: "", fb_access_token: "" } as SiteSettings;
     },
-    staleTime: 5 * 60 * 1000, 
   });
 
   const mutation = useMutation({
     mutationFn: async (newSettings: Partial<SiteSettings>) => {
-      // Current settings fetch
       const currentConfig = query.data || { ad_system: "manual", google_client_id: "ca-pub-1869371645821023" };
       const updatedConfigOptions = { ...currentConfig, ...newSettings };
       const newJsonString = JSON.stringify(updatedConfigOptions);
 
-      // Check if config record exists
       const { data: existing } = await supabase
         .from("ad_partners")
         .select("id")
@@ -71,24 +75,24 @@ export function useSiteSettings() {
         .maybeSingle();
 
       if (existing) {
-        // Update existing fake partner config
         const { error } = await supabase
           .from("ad_partners")
           .update({ website_url: newJsonString })
           .eq("id", existing.id);
         if (error) throw error;
       } else {
-        // Insert new fake partner config
         const { error } = await supabase
           .from("ad_partners")
           .insert({
             name: CONFIG_NAME,
             website_url: newJsonString,
-            is_active: false, // Make sure it never shows up as a real ad partner anywhere
+            is_active: false,
           });
         if (error) throw error;
       }
-        
+      try {
+        localStorage.setItem("janamt_site_settings", newJsonString);
+      } catch (e) {}
       return updatedConfigOptions as SiteSettings;
     },
     onSuccess: () => {
@@ -98,7 +102,7 @@ export function useSiteSettings() {
 
   return {
     settings: query.data,
-    isLoading: query.isLoading,
+    isLoading: false, // Instant synchronous initialData ensures no flicker
     updateSettings: mutation.mutateAsync,
     isUpdating: mutation.isPending
   };
