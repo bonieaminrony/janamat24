@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,41 +7,46 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index";
-import CategoryPage from "./pages/CategoryPage";
-import NewsDetailPage from "./pages/NewsDetailPage";
-import AuthPage from "./pages/AuthPage";
-import AboutPage from "./pages/AboutPage";
-import ConverterPage from "./pages/ConverterPage";
-import QuranPage from "./pages/QuranPage";
-import SearchPage from "./pages/SearchPage";
-import BookmarksPage from "./pages/BookmarksPage";
-import PrivacyPage from "./pages/PrivacyPage";
-import AdvertisePage from "./pages/AdvertisePage";
-import EditorialPolicyPage from "./pages/EditorialPolicyPage";
-import CorrectionsPolicyPage from "./pages/CorrectionsPolicyPage";
-import AuthorPage from "./pages/AuthorPage";
-import AdminLayout from "./components/admin/AdminLayout";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminNews from "./pages/admin/AdminNews";
-import AdminCategories from "./pages/admin/AdminCategories";
-import AdminAdPartners from "./pages/admin/AdminAdPartners";
-import AdminReporters from "./pages/admin/AdminReporters";
-import AdminRoles from "./pages/admin/AdminRoles";
-import AdminProfile from "./pages/admin/AdminProfile";
-import AdminSettings from "./pages/admin/AdminSettings";
-import AdminSubscribers from "./pages/admin/AdminSubscribers";
-import AdminCardGenerator from "./pages/admin/AdminCardGenerator";
-import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "@/components/theme-provider";
 import RealtimeTracker from "./components/RealtimeTracker";
+
+// Lazy-loaded routes for instant initial homepage load
+const CategoryPage = lazy(() => import("./pages/CategoryPage"));
+const NewsDetailPage = lazy(() => import("./pages/NewsDetailPage"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const ConverterPage = lazy(() => import("./pages/ConverterPage"));
+const QuranPage = lazy(() => import("./pages/QuranPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const BookmarksPage = lazy(() => import("./pages/BookmarksPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
+const AdvertisePage = lazy(() => import("./pages/AdvertisePage"));
+const EditorialPolicyPage = lazy(() => import("./pages/EditorialPolicyPage"));
+const CorrectionsPolicyPage = lazy(() => import("./pages/CorrectionsPolicyPage"));
+const AuthorPage = lazy(() => import("./pages/AuthorPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Admin routes (heavy dependencies like recharts, tiptap, html2canvas are isolated here)
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminNews = lazy(() => import("./pages/admin/AdminNews"));
+const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
+const AdminAdPartners = lazy(() => import("./pages/admin/AdminAdPartners"));
+const AdminReporters = lazy(() => import("./pages/admin/AdminReporters"));
+const AdminRoles = lazy(() => import("./pages/admin/AdminRoles"));
+const AdminProfile = lazy(() => import("./pages/admin/AdminProfile"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminSubscribers = lazy(() => import("./pages/admin/AdminSubscribers"));
+const AdminCardGenerator = lazy(() => import("./pages/admin/AdminCardGenerator"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 3, // Cache data for 3 minutes
-      retry: 2,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      staleTime: 1000 * 60 * 5, // Cache data for 5 minutes
+      gcTime: 1000 * 60 * 30, // Keep cached in memory for 30 mins
+      retry: 1,
+      retryDelay: 1000,
     },
   },
 });
@@ -98,6 +103,12 @@ const App = () => {
           <BrowserRouter>
             <ScrollToTop />
             <GlobalErrorBoundary>
+            <Suspense fallback={
+              <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+                <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-3" />
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">জনমত ২৪</span>
+              </div>
+            }>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/category/:slug" element={<CategoryPage />} />
@@ -127,6 +138,7 @@ const App = () => {
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
             </GlobalErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>

@@ -20,9 +20,7 @@ export function UniversalAdBanner({ placement, slot, newsId, className, format, 
 
   if (isLoading) {
     return (
-      <div className={`bg-muted/10 animate-pulse rounded-lg flex items-center justify-center min-h-[90px] ${className || ""}`}>
-        <span className="text-xs text-muted-foreground/30">Loading Ad</span>
-      </div>
+      <div className={`bg-muted/10 animate-pulse rounded-lg flex items-center justify-center min-h-[90px] ${className || ""}`} />
     );
   }
 

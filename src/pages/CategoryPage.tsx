@@ -24,7 +24,7 @@ type SortOption = "newest" | "oldest" | "popular";
 type ViewMode = "grid" | "list";
 type TimeFilter = "all" | "today" | "week" | "month";
 
-const PAGE_SIZE = 31;
+const PAGE_SIZE = 12;
 const MAX_AUTO_LOADS = 10;
 
 interface Category {
@@ -93,6 +93,7 @@ const CategoryPage = () => {
       })();
       return withTimeout(fetchPromise, 10000);
     },
+    staleTime: 1000 * 60 * 10,
   });
 
   // Calculate cutoff date inside useQuery directly
@@ -107,7 +108,7 @@ const CategoryPage = () => {
         
         let query = supabase
           .from("news")
-          .select("id, title, slug, excerpt, content, image_url, published_at, views, categories(name, slug)")
+          .select("id, title, slug, excerpt, image_url, published_at, views, categories(name, slug)")
           .eq("status", "published");
           
         if (category.id !== "all") {
@@ -140,6 +141,7 @@ const CategoryPage = () => {
       return withTimeout(fetchPromise, 10000);
     },
     enabled: !!category?.id,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Sync query results to allNews state to support infinite scrolling and handle cache hits correctly
@@ -300,9 +302,17 @@ const CategoryPage = () => {
                   </Button>
                 </div>
               ) : page === 1 && newsLoading ? (
-                <div className="flex flex-col items-center justify-center min-h-[300px] text-muted-foreground pt-4">
-                  <Loader2 className="h-10 w-10 animate-spin mb-3 text-primary" />
-                  <p className="font-medium animate-pulse">সংবাদ লোড হচ্ছে...</p>
+                <div className={`grid gap-6 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="flex gap-4 p-4 border border-border bg-white dark:bg-slate-900">
+                      <Skeleton className="w-[120px] aspect-[4/3] shrink-0" />
+                      <div className="flex-1 flex flex-col gap-2">
+                        <Skeleton className="h-5 w-full" />
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-3 w-1/2 mt-auto" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : allNews.length === 0 ? (
                 <div className="text-center py-20 bg-muted/10 rounded-3xl border border-dashed border-border/50">

@@ -37,9 +37,24 @@ export function PrayerTimesWidget() {
   const { data: timings, isLoading } = useQuery({
     queryKey: ["prayer-times", "dhaka"],
     queryFn: async () => {
-      const res = await fetch("https://api.aladhan.com/v1/timingsByCity?city=Dhaka&country=Bangladesh&method=1");
-      const json = await res.json();
-      return json.data.timings;
+      try {
+        const res = await fetch("https://api.aladhan.com/v1/timingsByCity?city=Dhaka&country=Bangladesh&method=1");
+        const json = await res.json();
+        const tim = json.data.timings;
+        try { localStorage.setItem("janamat_prayer_v1", JSON.stringify(tim)); } catch(e) {}
+        return tim;
+      } catch (err) {
+        const fallback = localStorage.getItem("janamat_prayer_v1");
+        if (fallback) return JSON.parse(fallback);
+        throw err;
+      }
+    },
+    initialData: () => {
+      try {
+        const saved = localStorage.getItem("janamat_prayer_v1");
+        if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      return undefined;
     },
     staleTime: 1000 * 60 * 60 * 12, // Cache for 12 hours
   });

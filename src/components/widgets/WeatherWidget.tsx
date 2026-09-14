@@ -28,29 +28,46 @@ export function WeatherWidget() {
   const { data: weather, isLoading } = useQuery({
     queryKey: ["weather", "dhaka"],
     queryFn: async () => {
-      const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=23.8103&longitude=90.4125&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=sunrise,sunset&timezone=Asia%2FDhaka");
-      const data = await res.json();
-      
-      const current = data.current;
-      const daily = data.daily;
-      const condition = getBanglaWeatherCondition(current.weather_code);
+      try {
+        const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=23.8103&longitude=90.4125&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=sunrise,sunset&timezone=Asia%2FDhaka");
+        const data = await res.json();
+        
+        const current = data.current;
+        const daily = data.daily;
+        const condition = getBanglaWeatherCondition(current.weather_code);
 
-      return {
-        temp: Math.round(current.temperature_2m),
-        condition: condition.text,
-        location: "ঢাকা, বাংলাদেশ",
-        Icon: condition.IconComponent,
-        humidity: `${toBanglaNumber(current.relative_humidity_2m)}%`,
-        wind: `${toBanglaNumber(Math.round(current.wind_speed_10m))} কিমি/ঘ`,
-        sunrise: formatTimeBn(daily.sunrise[0]),
-        sunset: formatTimeBn(daily.sunset[0]),
-        feelsLike: Math.round(current.apparent_temperature)
-      };
+        const result = {
+          temp: Math.round(current.temperature_2m),
+          condition: condition.text,
+          location: "ঢাকা, বাংলাদেশ",
+          weatherCode: current.weather_code,
+          humidity: `${toBanglaNumber(current.relative_humidity_2m)}%`,
+          wind: `${toBanglaNumber(Math.round(current.wind_speed_10m))} কিমি/ঘ`,
+          sunrise: formatTimeBn(daily.sunrise[0]),
+          sunset: formatTimeBn(daily.sunset[0]),
+          feelsLike: Math.round(current.apparent_temperature)
+        };
+        try { localStorage.setItem("janamat_weather_v1", JSON.stringify(result)); } catch(e) {}
+        return result;
+      } catch (err) {
+        const fallback = localStorage.getItem("janamat_weather_v1");
+        if (fallback) return JSON.parse(fallback);
+        throw err;
+      }
     },
-    staleTime: 1000 * 60 * 15, // Cache for 15 mins
+    initialData: () => {
+      try {
+        const saved = localStorage.getItem("janamat_weather_v1");
+        if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      return undefined;
+    },
+    staleTime: 1000 * 60 * 30, // 30 mins
   });
 
-  if (isLoading) return (
+  const Icon = weather ? getBanglaWeatherCondition(weather.weatherCode ?? 0).IconComponent : Sun;
+
+  if (isLoading && !weather) return (
     <div className="h-[280px] bg-white dark:bg-slate-900 animate-pulse border border-border mb-8" />
   );
 

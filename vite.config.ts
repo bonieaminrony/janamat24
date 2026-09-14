@@ -59,9 +59,11 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           vendor: ["react", "react-dom", "react-router-dom"],
           supabase: ["@supabase/supabase-js"],
-          ui: ["@radix-ui/react-dialog", "@radix-ui/react-tabs", "@radix-ui/react-select"],
+          tanstack: ["@tanstack/react-query"],
+          ui: ["@radix-ui/react-dialog", "@radix-ui/react-tabs", "@radix-ui/react-select", "@radix-ui/react-dropdown-menu"],
           icons: ["lucide-react"],
           charts: ["recharts"],
+          editor: ["@tiptap/react", "@tiptap/starter-kit"],
         },
       },
     },
