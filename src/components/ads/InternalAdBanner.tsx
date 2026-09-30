@@ -26,21 +26,22 @@ interface AdBanner {
 }
 
 const placementStyles: Record<string, string> = {
-  home_page_top: "w-full max-w-4xl mx-auto",
-  home_page_middle: "w-full max-w-4xl mx-auto",
-  home_column_center: "w-full mx-auto",
-  home_feed: "w-full",
-  featured_news_inline: "w-full max-w-3xl mx-auto my-4",
-  article_inline: "w-full max-w-3xl mx-auto my-6",
-  article_side: "w-full",
-  article_related: "w-full max-w-3xl mx-auto my-6",
-  quran_top_banner: "w-full max-w-4xl mx-auto",
-  quran_side_square: "w-full",
-  header: "w-full max-w-4xl mx-auto",
-  sidebar: "w-full",
-  in_article: "w-full max-w-2xl mx-auto my-6",
-  footer: "w-full max-w-4xl mx-auto",
-  related_news_inline: "w-full h-full min-h-[250px]",
+  home_page_top: "hidden lg:block w-full max-w-5xl mx-auto min-h-[90px]",
+  home_page_middle: "w-full max-w-5xl mx-auto min-h-[90px] sm:min-h-[100px] md:min-h-[120px] my-6 sm:my-8",
+  home_column_center: "w-full mx-auto min-h-[90px]",
+  home_feed: "w-full min-h-[90px]",
+  featured_news_inline: "w-full max-w-3xl mx-auto my-4 min-h-[90px]",
+  article_inline: "w-full max-w-3xl mx-auto my-6 min-h-[90px] sm:min-h-[120px]",
+  article_side: "w-full min-h-[250px]",
+  article_bottom: "w-full max-w-4xl mx-auto min-h-[90px] sm:min-h-[110px] my-6",
+  article_related: "w-full max-w-3xl mx-auto my-6 min-h-[90px]",
+  quran_top_banner: "w-full max-w-4xl mx-auto min-h-[60px] md:min-h-[90px]",
+  quran_side_square: "w-full min-h-[200px]",
+  header: "hidden lg:block w-full max-w-4xl mx-auto min-h-[90px]",
+  sidebar: "w-full min-h-[250px]",
+  in_article: "w-full max-w-2xl mx-auto my-6 min-h-[90px] sm:min-h-[120px]",
+  footer: "w-full max-w-5xl mx-auto min-h-[90px] sm:min-h-[110px]",
+  related_news_inline: "w-full h-full min-h-[200px]",
 };
 
 // Get or create session ID for click tracking
@@ -195,34 +196,23 @@ export function InternalAdBanner({ placement, newsId, className, index, style }:
     // If only one banner or index is strictly provided and we shouldn't rotate
     if (banners.length <= 1 || index !== undefined) return;
 
-    // Pattern: 2s, 3s, 1s, 3s, 2s
-    const intervals = [2000, 3000, 1000, 3000, 2000];
-    let timeoutId: NodeJS.Timeout;
-    let step = 0;
+    // Gentle 12-second interval to avoid distracting page flashing
+    const interval = setInterval(() => {
+      setCurrentAdIndex((prev) => (prev + 1) % banners.length);
+    }, 12000);
 
-    const scheduleNext = () => {
-      timeoutId = setTimeout(() => {
-        setCurrentAdIndex((prev) => (prev + 1) % banners.length);
-        step = (step + 1) % intervals.length;
-        scheduleNext();
-      }, intervals[step]);
-    };
-
-    scheduleNext();
-
-    return () => clearTimeout(timeoutId);
+    return () => clearInterval(interval);
   }, [banners.length, index]);
 
   if (isLoading) {
     return (
-      <div className={cn("bg-muted/30 rounded-lg animate-pulse", placementStyles[placement], className)} />
+      <div className={cn("bg-muted/20 rounded-xl animate-pulse flex items-center justify-center", placementStyles[placement], className)} />
     );
   }
 
   if (banners.length === 0) {
     if (placement === 'related_news_inline' || placement === 'featured_news_inline') {
-      // Fallback to article_side (which falls back to sidebar) if no specific ad is uploaded yet
-      return <InternalAdBanner placement="article_side" newsId={newsId} className={className} index={index} />;
+      return null;
     }
     return null; // Don't show anything if no ads
   }
@@ -248,77 +238,72 @@ export function InternalAdBanner({ placement, newsId, className, index, style }:
     }
 
     return (
-      <div className={cn("w-full flex flex-col gap-4 py-4 box-border relative", placementStyles[placement], className)} style={style}>
-        <span className="absolute top-0 right-0 bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-bl-lg rounded-tr-xl z-10 uppercase tracking-widest">
-          Sponsored
+      <div className={cn("w-full flex flex-col gap-3 py-3 box-border relative rounded-xl overflow-hidden bg-muted/5 border border-border/40 p-2 sm:p-3", placementStyles[placement], className)} style={style}>
+        <span className="absolute top-1 right-2 bg-background/80 dark:bg-slate-900/80 text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded z-10 uppercase tracking-widest border border-border/40 backdrop-blur-sm">
+          বিজ্ঞাপন
         </span>
         
-        <div className="flex w-full gap-3 h-36 md:h-44 lg:h-52">
+        <div className="flex w-full gap-2.5 sm:gap-3 h-32 sm:h-40 md:h-48">
           <div className="w-1/2 h-full">
             {links[0] && sanitizeLinkUrl(links[0]) !== '#' ? (
               <a href={sanitizeLinkUrl(links[0])} target="_blank" rel="noopener noreferrer sponsored" className="block w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
-                <img src={images[0]} alt="Ad 1" className="w-full h-full object-cover rounded-xl" loading="lazy" />
+                <img src={images[0]} alt="Ad 1" className="w-full h-full object-cover rounded-lg" loading="lazy" />
               </a>
             ) : (
-              <div className="w-full h-full" onClick={handleClick}><img src={images[0]} alt="Ad 1" className="w-full h-full object-cover rounded-xl cursor-pointer" loading="lazy" /></div>
+              <div className="w-full h-full" onClick={handleClick}><img src={images[0]} alt="Ad 1" className="w-full h-full object-cover rounded-lg cursor-pointer" loading="lazy" /></div>
             )}
           </div>
           
-          <div className="w-1/2 flex flex-col gap-3 h-full">
+          <div className="w-1/2 flex flex-col gap-2.5 sm:gap-3 h-full">
             <div className="w-full h-[calc(50%-0.375rem)]">
               {links[1] && sanitizeLinkUrl(links[1]) !== '#' ? (
                 <a href={sanitizeLinkUrl(links[1])} target="_blank" rel="noopener noreferrer sponsored" className="block w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
-                  <img src={images[1] || images[0]} alt="Ad 2" className="w-full h-full object-cover rounded-xl" loading="lazy" />
+                  <img src={images[1] || images[0]} alt="Ad 2" className="w-full h-full object-cover rounded-lg" loading="lazy" />
                 </a>
               ) : (
-                <div className="w-full h-full" onClick={handleClick}><img src={images[1] || images[0]} alt="Ad 2" className="w-full h-full object-cover rounded-xl cursor-pointer" loading="lazy" /></div>
+                <div className="w-full h-full" onClick={handleClick}><img src={images[1] || images[0]} alt="Ad 2" className="w-full h-full object-cover rounded-lg cursor-pointer" loading="lazy" /></div>
               )}
             </div>
             
             <div className="w-full h-[calc(50%-0.375rem)]">
               {links[2] && sanitizeLinkUrl(links[2]) !== '#' ? (
                 <a href={sanitizeLinkUrl(links[2])} target="_blank" rel="noopener noreferrer sponsored" className="block w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
-                  <img src={images[2] || images[0]} alt="Ad 3" className="w-full h-full object-cover rounded-xl" loading="lazy" />
+                  <img src={images[2] || images[0]} alt="Ad 3" className="w-full h-full object-cover rounded-lg" loading="lazy" />
                 </a>
               ) : (
-                <div className="w-full h-full" onClick={handleClick}><img src={images[2] || images[0]} alt="Ad 3" className="w-full h-full object-cover rounded-xl cursor-pointer" loading="lazy" /></div>
+                <div className="w-full h-full" onClick={handleClick}><img src={images[2] || images[0]} alt="Ad 3" className="w-full h-full object-cover rounded-lg cursor-pointer" loading="lazy" /></div>
               )}
             </div>
           </div>
         </div>
 
-        <div className="text-center w-full mt-2">
-          <h3 className="font-bold text-xl">{randomBanner.ad_partners?.name}</h3>
-        </div>
-        <div className="flex items-center justify-center w-full mt-2">
-          <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-12 mr-4"></div>
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sponsored Section</span>
-          <div className="h-[1px] bg-slate-200 dark:bg-slate-700 w-12 ml-4"></div>
-        </div>
+        {randomBanner.ad_partners?.name && (
+          <div className="text-center w-full mt-1">
+            <span className="font-bold text-xs sm:text-sm text-muted-foreground">{randomBanner.ad_partners.name}</span>
+          </div>
+        )}
       </div>
     );
   }
-
-  const isSquare = ['sidebar', 'article_side', 'quran_side_square'].includes(placement);
 
   const content = (
     <img
       src={randomBanner.image_url}
       alt={randomBanner.alt_text || "বিজ্ঞাপন"}
       className={cn(
-        "w-full max-w-full rounded-lg transition-transform hover:scale-[1.01] shadow-sm",
+        "w-full max-w-full rounded-xl transition-transform hover:scale-[1.005] shadow-xs",
         placement === 'header' 
           ? "h-full w-full object-contain" 
-          : "h-auto w-full object-contain bg-slate-50 dark:bg-slate-800/50"
+          : "h-auto w-full object-contain bg-slate-50 dark:bg-slate-900/40"
       )}
       loading="lazy"
     />
   );
 
   return (
-    <div className={cn("relative overflow-hidden max-w-full box-border", placementStyles[placement], className)} style={style}>
-      <span className="absolute top-0 right-0 bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-bl-lg rounded-tr-xl z-10 uppercase tracking-widest">
-        Sponsored
+    <div className={cn("relative overflow-hidden max-w-full box-border rounded-xl", placementStyles[placement], className)} style={style}>
+      <span className="absolute top-1.5 right-2 bg-background/80 dark:bg-slate-900/80 text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded z-10 uppercase tracking-widest border border-border/40 backdrop-blur-sm pointer-events-none">
+        বিজ্ঞাপন
       </span>
       {randomBanner.link_url && sanitizeLinkUrl(randomBanner.link_url) !== '#' ? (
         <a

@@ -5,10 +5,11 @@
   # Serve news-image via seo.php (no bot check needed — always serve image)
   RewriteRule ^news-image/(.*)$ seo.php?type=news-image&slug=$1 [L,QSA]
 
-  # Rewrite sitemap.xml to sitemap.php
-  RewriteRule ^sitemap\.xml$ sitemap.php [L]
+  # Rewrite sitemaps to sitemap.php
+  RewriteRule ^sitemap\.xml$ sitemap.php?type=standard [L]
+  RewriteRule ^news-sitemap\.xml$ sitemap.php?type=news [L]
 
-  # Intercept social media & search engine bots → seo.php for OG meta
+  # Intercept social media & search engine bots → seo.php for OG meta & pre-rendering
   RewriteCond %{HTTP_USER_AGENT} (facebookexternalhit|Facebot|Twitterbot|Pinterest|WhatsApp|LinkedInBot|vkShare|W3C_Validator|Slackbot|TelegramBot|Discordbot|SkypeUriPreview|Googlebot|bingbot|Applebot|ia_archiver) [NC]
   RewriteCond %{QUERY_STRING} !spa=1
   RewriteRule ^(news|category)/(.*)$ seo.php?type=$1&slug=$2 [L,QSA]
@@ -54,4 +55,3 @@
     Header set Expires 0
   </FilesMatch>
 </IfModule>
-

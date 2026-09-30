@@ -12,6 +12,10 @@
 
 [[edge_functions]]
   function = "seo-meta"
+  path = "/"
+
+[[edge_functions]]
+  function = "seo-meta"
   path = "/news/*"
 
 [[edge_functions]]
@@ -25,3 +29,7 @@
 [[edge_functions]]
   function = "sitemap"
   path = "/sitemap.xml"
+
+[[edge_functions]]
+  function = "sitemap"
+  path = "/news-sitemap.xml"

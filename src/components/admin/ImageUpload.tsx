@@ -45,7 +45,7 @@ export function ImageUpload({ value, onChange, bucket = "news-images" }: ImageUp
   const [sharpness, setSharpness] = useState(0);   // 0 to 100
   const [blurRegions, setBlurRegions] = useState<BlurRegion[]>([]);
 
-  const redrawCanvas = () => {
+  const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const img = originalImageRef.current;
     if (!canvas || !img) return;
@@ -89,11 +89,11 @@ export function ImageUpload({ value, onChange, bucket = "news-images" }: ImageUp
         }
       }
     });
-  };
+  }, [brightness, contrast, saturate, sharpness, blurRegions]);
 
   useEffect(() => {
     redrawCanvas();
-  }, [brightness, contrast, saturate, sharpness, blurRegions]);
+  }, [redrawCanvas]);
 
   const initBlurCanvas = (imageUrl: string) => {
     setBrightness(0);

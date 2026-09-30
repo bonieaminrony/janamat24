@@ -38,6 +38,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { sanitizeImageUrl } from "@/lib/url-utils";
 import { generateSlug, decodeBanglaText, formatBanglaDate, toBanglaNumber } from "@/lib/bangla-utils";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import DOMPurify from "dompurify";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { cn } from "@/lib/utils";
 
@@ -333,6 +334,13 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
     onSuccess: (st) => {
       queryClient.invalidateQueries({ queryKey: ["admin-news"] });
       queryClient.invalidateQueries({ queryKey: ["admin-recent-news"] });
+      queryClient.invalidateQueries({ queryKey: ["featured-news"] });
+      queryClient.invalidateQueries({ queryKey: ["block-news"] });
+      queryClient.invalidateQueries({ queryKey: ["latest-news-paginated"] });
+      try {
+        localStorage.removeItem("janamat_featured_v2");
+        localStorage.removeItem("janamat_block_v2");
+      } catch(e) {}
       setLastSaved(new Date());
       toast({ title: "সফল", description: st === 'published' ? "সংবাদ প্রকাশিত হয়েছে" : "খসড়া সংরক্ষিত করা হয়েছে" });
       if (st === 'published') onClose();
@@ -572,7 +580,7 @@ export default function NewsEditorForm({ news, onClose }: NewsEditorFormProps) {
                                   <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> জনমত ২৪ স্টাফ</p>
                                </div>
                             </div>
-                            <div className="prose dark:prose-invert prose-slate max-w-none text-slate-800 dark:text-slate-200" dangerouslySetInnerHTML={{ __html: content || "<p className='text-slate-400 italic'>বিষয়বস্তু এখানে লোড হবে...</p>" }} />
+                            <div className="prose dark:prose-invert prose-slate max-w-none text-slate-800 dark:text-slate-200" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content || "<p className='text-slate-400 italic'>বিষয়বস্তু এখানে লোড হবে...</p>") }} />
                         </div>
                     </div>
                 </TabsContent>

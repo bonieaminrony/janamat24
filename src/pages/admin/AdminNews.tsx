@@ -173,6 +173,13 @@ export default function AdminNews() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-news"] });
+      queryClient.invalidateQueries({ queryKey: ["featured-news"] });
+      queryClient.invalidateQueries({ queryKey: ["block-news"] });
+      queryClient.invalidateQueries({ queryKey: ["latest-news-paginated"] });
+      try {
+        localStorage.removeItem("janamat_featured_v2");
+        localStorage.removeItem("janamat_block_v2");
+      } catch(e) {}
       setSelectedIds(new Set());
       toast({ title: "সফল", description: "নির্বাচিত সংবাদ গুলো মুছে ফেলা হয়েছে" });
     },

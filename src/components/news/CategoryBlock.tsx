@@ -1,9 +1,8 @@
 import { Link } from "react-router-dom";
-import { ChevronRight, Clock, Newspaper, Star } from "lucide-react";
+import { ChevronRight, Clock, Newspaper } from "lucide-react";
 import { formatBanglaRelativeTime } from "@/lib/bangla-utils";
 import { sanitizeImageUrl } from "@/lib/url-utils";
 import { prefetchArticle } from "@/lib/query-client";
-import { UniversalAdBanner } from "@/components/ads/UniversalAdBanner";
 
 interface NewsItem {
   id: string;
@@ -20,10 +19,9 @@ interface CategoryBlockProps {
   categorySlug: string;
   news: NewsItem[];
   layout?: "grid" | "featured-left";
-  showAds?: boolean;
 }
 
-export function CategoryBlock({ title, categorySlug, news, layout = "grid", showAds = false }: CategoryBlockProps) {
+export function CategoryBlock({ title, categorySlug, news, layout = "grid" }: CategoryBlockProps) {
   if (!news || news.length === 0) return null;
 
   const handlePrefetch = (slug?: string) => {
@@ -50,7 +48,7 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
 
       {layout === "grid" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-6">
-          {news.slice(0, showAds ? 3 : 4).map((item) => {
+          {news.slice(0, 4).map((item) => {
             const imgUrl = sanitizeImageUrl(item.image_url);
             return (
               <Link 
@@ -96,22 +94,6 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
               </Link>
             )
           })}
-
-          {/* Native Grid Ad */}
-          {showAds && (
-             <div className="group flex flex-col gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 border border-dashed border-border h-full">
-                <div className="relative aspect-[4/3] bg-muted border border-border flex items-center justify-center overflow-hidden">
-                    <span className="absolute top-0 right-0 bg-primary text-white text-[9px] font-black px-1 z-10 pointer-events-none uppercase">Ad</span>
-                    <UniversalAdBanner placement="in_article" slot={`native-grid-${categorySlug}`} className="w-full h-full" format="fluid" />
-                </div>
-                <div className="flex flex-col mt-auto">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-1 mb-1 flex items-center gap-1"><Star className="w-3 h-3"/> স্পনসর্ড</span>
-                  <h3 className="font-bold text-[1.1rem] text-muted-foreground leading-snug line-clamp-3">
-                    তীব্র গরমে আপনার সন্তানের সুরক্ষায় এখনই অর্ডার করুন
-                  </h3>
-                </div>
-             </div>
-          )}
         </div>
       )}
 
@@ -126,12 +108,12 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
               onTouchStart={() => handlePrefetch(news[0].slug)}
               className="group block"
             >
-              <div className="aspect-[16/10] w-full bg-muted border border-border mb-4 relative">
+              <div className="aspect-[16/10] w-full bg-muted border border-border mb-4 relative overflow-hidden rounded-md">
                 {sanitizeImageUrl(news[0].image_url) ? (
                   <img 
                     src={sanitizeImageUrl(news[0].image_url)!} 
                     alt={news[0].title}
-                    className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
                   <div className="w-full h-full flex justify-center items-center">
@@ -140,14 +122,14 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
                 )}
               </div>
               
-              <h3 className="text-2xl sm:text-[1.8rem] font-bold text-headline leading-[1.3] group-hover:text-primary transition-colors mb-3">
+              <h3 className="text-xl sm:text-2xl md:text-[1.8rem] font-bold text-headline leading-snug group-hover:text-primary transition-colors mb-2.5">
                 {news[0].title}
               </h3>
               
               {(() => {
                 const displayExcerpt = news[0].excerpt || (news[0].content ? news[0].content.replace(/<[^>]+>/g, '').substring(0, 300) : null);
                 return displayExcerpt ? (
-                  <p className="text-foreground text-[1.05rem] leading-[1.65] line-clamp-3 mb-4">
+                  <p className="text-foreground/90 text-sm sm:text-base leading-relaxed line-clamp-3 mb-3 font-medium">
                     {displayExcerpt}
                   </p>
                 ) : null;
@@ -160,24 +142,10 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
                 </span>
               )}
             </Link>
-            {showAds && (
-              <div className="group flex flex-col sm:flex-row gap-5 p-4 bg-slate-50 dark:bg-slate-900/50 border border-dashed border-border mt-6 rounded-2xl items-center justify-between">
-                <div className="flex flex-col flex-1 order-2 sm:order-1">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1.5 flex items-center gap-1"><Star className="w-3 h-3 text-primary animate-pulse"/> স্পনসর্ড কন্টেন্ট</span>
-                  <h4 className="font-bold text-base text-muted-foreground leading-snug">
-                    তীব্র গরমে আপনার সন্তানের সুরক্ষায় এখনই অর্ডার করুন
-                  </h4>
-                </div>
-                <div className="w-full sm:w-[130px] shrink-0 aspect-[16/9] sm:aspect-[4/3] bg-muted border border-border relative flex items-center justify-center overflow-hidden rounded-xl order-1 sm:order-2">
-                   <span className="absolute top-0 right-0 bg-primary text-white text-[9px] font-black px-1 z-10 pointer-events-none uppercase">Ad</span>
-                   <UniversalAdBanner placement="in_article" slot={`native-sidebar-${categorySlug}`} className="w-full h-full" />
-                </div>
-              </div>
-            )}
           </div>
           
           {/* Sidebar Split Items (Col 5) */}
-          <div className="lg:col-span-5 flex flex-col gap-0 divide-y divide-border pl-0 lg:pl-6">
+          <div className="lg:col-span-5 flex flex-col gap-0 divide-y divide-border pl-0 lg:pl-6 pt-4 lg:pt-0">
             {news.slice(1, 5).map((item, idx) => {
               const secUrl = sanitizeImageUrl(item.image_url);
               return (
@@ -186,15 +154,15 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
                   to={`/news/${item.slug}`} 
                   onMouseEnter={() => handlePrefetch(item.slug)}
                   onTouchStart={() => handlePrefetch(item.slug)}
-                  className={`group flex gap-4 ${idx > 0 ? "pt-5" : "pb-5 first:pt-0"} pb-5 last:pb-0`}
+                  className={`group flex gap-3 sm:gap-4 ${idx > 0 ? "pt-4" : "pb-4 first:pt-0"} pb-4 last:pb-0 items-start`}
                 >
-                  <div className="w-[120px] shrink-0">
-                    <div className="aspect-[4/3] bg-muted border border-border relative">
+                  <div className="w-[95px] sm:w-[120px] shrink-0">
+                    <div className="aspect-[4/3] bg-muted border border-border relative overflow-hidden rounded-md">
                       {secUrl ? (
                         <img 
                           src={secUrl} 
                           alt={item.title}
-                          className="w-full h-full object-cover group-hover:opacity-90 transition-opacity"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
                          <div className="w-full h-full flex items-center justify-center">
@@ -204,14 +172,14 @@ export function CategoryBlock({ title, categorySlug, news, layout = "grid", show
                     </div>
                   </div>
                   
-                  <div className="flex flex-col flex-1">
-                    <h4 className="font-bold text-[1.1rem] text-headline leading-snug group-hover:text-primary transition-colors line-clamp-3 mb-2">
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <h4 className="font-bold text-sm sm:text-base text-headline leading-snug group-hover:text-primary transition-colors line-clamp-2 sm:line-clamp-3 mb-1.5">
                       {item.title}
                     </h4>
                     
                     {item.published_at && (
                       <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1 mt-auto">
-                        <Clock className="w-3 h-3 text-primary/60" />
+                        <Clock className="w-3 h-3 text-primary/60 shrink-0" />
                         {formatBanglaRelativeTime(item.published_at)}
                       </span>
                     )}

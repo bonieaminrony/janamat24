@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Fragment } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { FeaturedNews } from "@/components/news/FeaturedNews";
@@ -137,6 +137,7 @@ const HOME_POPULAR_CACHE = "janamat_popular_v2";
 const CATEGORIES_CACHE = "janamat_categories_v2";
 
 const Index = () => {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [allLatestNews, setAllLatestNews] = useState<News[]>(() => {
     try {
@@ -148,29 +149,35 @@ const Index = () => {
   const [hasMore, setHasMore] = useState(true);
   const [autoLoadCount, setAutoLoadCount] = useState(0);
 
-  // Fetch featured news (Instant 0ms initial load from cache, background refresh)
+  // Real-time listener: When new news is published/updated, refresh homepage queries immediately
+  useEffect(() => {
+    const channel = supabase
+      .channel("public-news-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "news" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["featured-news"] });
+        queryClient.invalidateQueries({ queryKey: ["block-news"] });
+        queryClient.invalidateQueries({ queryKey: ["latest-news-paginated"] });
+        queryClient.invalidateQueries({ queryKey: ["popular-news"] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Fetch featured news: ALWAYS strictly sorted by published_at DESC so the newest published news is #1
   const { data: featuredNews = [], isLoading: featuredLoading } = useQuery<News[]>({
     queryKey: ["featured-news"],
     queryFn: async () => {
-      const { data: featured, error } = await supabase
+      const { data, error } = await supabase
         .from("news")
-        .select("id, title, slug, excerpt, image_url, views, published_at, categories(name, slug)")
+        .select("id, title, slug, excerpt, content, image_url, views, published_at, categories(name, slug)")
         .eq("status", "published")
-        .eq("is_featured", true)
         .order("published_at", { ascending: false })
-        .limit(8);
+        .limit(12);
       if (error) throw error;
-      let result = (featured || []) as unknown as News[];
-      if (result.length === 0) {
-        const { data: latest, error: latestError } = await supabase
-          .from("news")
-          .select("id, title, slug, excerpt, image_url, views, published_at, categories(name, slug)")
-          .eq("status", "published")
-          .order("published_at", { ascending: false })
-          .limit(8);
-        if (latestError) throw latestError;
-        result = (latest || []) as unknown as News[];
-      }
+      const result = (data || []) as unknown as News[];
       try { localStorage.setItem(HOME_FEATURED_CACHE, JSON.stringify(result)); } catch(e) {}
       return result;
     },
@@ -181,7 +188,9 @@ const Index = () => {
       } catch(e) {}
       return undefined;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 30, // 30s freshness
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   // Fetch categories
@@ -409,6 +418,15 @@ const Index = () => {
             </div>
           )}
 
+          {/* Responsive Mid-Page Banner */}
+          <div className="mb-8">
+            <UniversalAdBanner 
+              placement="home_page_middle" 
+              slot="home-middle-slot" 
+              className="w-full rounded-xl overflow-hidden shadow-sm" 
+            />
+          </div>
+
           <div className="flex flex-col lg:flex-row gap-8">
             {/* MAIN CONTENT PORTAL BLOCKS */}
             <div className="flex-1 min-w-0 flex flex-col gap-8">
@@ -428,7 +446,6 @@ const Index = () => {
                       categorySlug={block.category.slug}
                       news={block.news}
                       layout={index === 0 ? "featured-left" : "grid"}
-                      showAds={index % 2 !== 0}
                     />
                   ))}
                   
@@ -440,46 +457,32 @@ const Index = () => {
                       </h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {allLatestNews.map((item, idx) => (
-                        <Fragment key={item.id}>
-                          <Link to={`/news/${item.slug}`} className="group flex gap-4 bg-white dark:bg-slate-900 border border-border p-3 transition-colors hover:border-primary/30">
-                            <div className="w-[110px] aspect-[4/3] overflow-hidden flex-shrink-0 bg-muted">
-                              {sanitizeImageUrl(item.image_url) && (
-                                <img src={sanitizeImageUrl(item.image_url)!} alt="" className="w-full h-full object-cover group-hover:opacity-90 transition-opacity" loading="lazy" />
-                              )}
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-[1.1rem] line-clamp-3 leading-snug group-hover:text-primary transition-colors text-headline">
-                                {item.title}
-                              </h4>
-                              {item.excerpt && (
-                                <p className="text-[13px] text-muted-foreground line-clamp-2 mt-2 font-medium">
-                                  {item.excerpt}
-                                </p>
-                              )}
-                              <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1 mt-2">
-                                <Clock className="w-3 h-3 text-primary/50" />
-                                {formatBanglaRelativeTime(item.published_at)}
-                              </span>
-                            </div>
-                          </Link>
-                          
-                          {/* Native In-Feed Ad every 4 items */}
-                          {(idx + 1) % 4 === 0 && (
-                            <div className="group flex gap-4 bg-slate-50 dark:bg-slate-900/50 border border-dashed border-border p-3 transition-colors items-center">
-                              <div className="w-[110px] aspect-[4/3] overflow-hidden flex-shrink-0 bg-muted flex items-center justify-center relative">
-                                <span className="absolute top-0 right-0 bg-primary text-white text-[9px] font-black px-1 z-10 pointer-events-none uppercase">Ad</span>
-                                <UniversalAdBanner placement="in_article" slot="9876543210" className="w-full h-full" />
-                              </div>
-                              <div className="flex flex-col justify-center">
-                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1 flex items-center gap-1"><Star className="w-3 h-3"/> স্পনসর্ড কন্টেন্ট</span>
-                                <h4 className="font-bold text-[1.1rem] leading-snug text-muted-foreground line-clamp-2">
-                                  ন্যায্য মূল্যে সেরা পণ্য কিনতে এখনই ভিজিট করুন
-                                </h4>
-                              </div>
-                            </div>
-                          )}
-                        </Fragment>
+                      {allLatestNews.map((item) => (
+                        <Link 
+                          key={item.id}
+                          to={`/news/${item.slug}`} 
+                          className="group flex gap-4 bg-white dark:bg-slate-900 border border-border p-3 transition-colors hover:border-primary/30"
+                        >
+                          <div className="w-[110px] aspect-[4/3] overflow-hidden flex-shrink-0 bg-muted">
+                            {sanitizeImageUrl(item.image_url) && (
+                              <img src={sanitizeImageUrl(item.image_url)!} alt="" className="w-full h-full object-cover group-hover:opacity-90 transition-opacity" loading="lazy" />
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-[1.1rem] line-clamp-3 leading-snug group-hover:text-primary transition-colors text-headline">
+                              {item.title}
+                            </h4>
+                            {item.excerpt && (
+                              <p className="text-[13px] text-muted-foreground line-clamp-2 mt-2 font-medium">
+                                {item.excerpt}
+                              </p>
+                            )}
+                            <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1 mt-2">
+                              <Clock className="w-3 h-3 text-primary/50" />
+                              {formatBanglaRelativeTime(item.published_at)}
+                            </span>
+                          </div>
+                        </Link>
                       ))}
                     </div>
 

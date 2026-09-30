@@ -19,6 +19,11 @@ export function UniversalAdBanner({ placement, slot, newsId, className, format, 
   const { settings, isLoading } = useSiteSettings();
 
   if (isLoading) {
+    if (placement === "header" || placement === "home_page_top") {
+      return (
+        <div className={`hidden lg:flex bg-muted/10 animate-pulse rounded-lg items-center justify-center min-h-[90px] ${className || ""}`} />
+      );
+    }
     return (
       <div className={`bg-muted/10 animate-pulse rounded-lg flex items-center justify-center min-h-[90px] ${className || ""}`} />
     );

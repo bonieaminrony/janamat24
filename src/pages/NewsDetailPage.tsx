@@ -481,16 +481,17 @@ const NewsDetailPage = () => {
   };
 
   const getAdPositions = (content: string | null) => {
-    if (!content) return [2, 5];
+    if (!content) return [];
     const isHtml = /<[a-z][\s\S]*>/i.test(content);
     const count = isHtml 
       ? content.split('</p>').filter(p => p.trim()).length 
       : content.split('\n').filter(line => line.trim()).length;
     
-    if (count >= 6) {
-      return [2, 4, 6];
+    // Only show 1 in-article ad placed after paragraph 3 if article is long enough (4+ paragraphs)
+    if (count >= 4) {
+      return [3];
     }
-    return [2, 5];
+    return [];
   };
 
   const { src: imageSrc, caption: imageCaption, kicker: imageKicker } = getImageUrlAndCaption(article.image_url);
@@ -502,10 +503,14 @@ const NewsDetailPage = () => {
       <SocialFloatingBar url={fullUrl} title={article.title} />
       <SEOHead
         title={article.title}
-        description={article.excerpt || article.content?.substring(0, 160) || ""}
+        description={article.excerpt || article.content?.replace(/<[^>]*>?/gm, '').substring(0, 160) || ""}
         image={imageSrc || undefined}
         url={`/news/${article.slug}`}
         type="article"
+        publishedAt={article.published_at || undefined}
+        updatedAt={article.updated_at || article.published_at || undefined}
+        authorName={author?.full_name || "জনমত ২৪ ডেস্ক"}
+        categoryName={article.categories?.name}
       />
       
       <article className="container py-6 md:py-10">
@@ -523,42 +528,42 @@ const NewsDetailPage = () => {
             <span className="text-foreground/60 line-clamp-1">{article.title}</span>
           </nav>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
             {/* Main Content */}
             <div className="lg:col-span-8">
               {/* Title */}
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-headline leading-tight mb-8">
-                {displayKicker && <span className="block text-xl md:text-2xl text-muted-foreground font-semibold mb-2">{displayKicker}</span>}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-headline leading-snug mb-6">
+                {displayKicker && <span className="block text-base sm:text-xl text-primary font-semibold mb-2">{displayKicker}</span>}
                 {article.title}
               </h1>
 
               {/* Meta bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 pb-6 border-b border-border">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 mb-6 sm:mb-8 pb-5 border-b border-border">
+                <div className="flex items-center gap-3 sm:gap-4">
                   {author?.avatar_url ? (
-                    <img src={sanitizeImageUrl(author.avatar_url)!} alt={author.full_name || "Author"} className="w-12 h-12 rounded-full object-cover bg-muted border border-border" />
+                    <img src={sanitizeImageUrl(author.avatar_url)!} alt={author.full_name || "Author"} className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover bg-muted border border-border shrink-0" />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-muted-foreground border border-border">
-                      <User className="w-6 h-6" />
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-muted-foreground border border-border shrink-0">
+                      <User className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                   )}
-                  <div className="flex flex-col">
-                    <div className="text-[13px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                      লিখেছেন – <span className="font-bold text-headline text-lg">{author?.full_name || "জনমত ২৪ ডেস্ক"}</span>
+                  <div className="flex flex-col min-w-0">
+                    <div className="text-xs sm:text-[13px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                      <span>লিখেছেন –</span> <span className="font-bold text-headline text-sm sm:text-base">{author?.full_name || "জনমত ২৪ ডেস্ক"}</span>
                       {author?.role && (
-                        <Badge variant="default" className="bg-primary hover:bg-primary/90 text-white text-[10px] px-2 py-0 h-5 font-medium ml-1">
+                        <Badge variant="default" className="bg-primary hover:bg-primary/90 text-white text-[10px] px-1.5 py-0 h-4.5 font-medium ml-1">
                           {author.role === 'admin' ? 'সম্পাদক' : author.role === 'editor' ? 'সহ-সম্পাদক' : author.role === 'reporter' ? 'রিপোর্টার' : author.role}
                         </Badge>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                      <Clock className="w-3.5 h-3.5" />
+                    <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                      <Clock className="w-3 h-3 shrink-0 text-primary/60" />
                       {formatBanglaDateFull(article.published_at)}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap pt-2 sm:pt-0">
                   {/* Inline Audio Player */}
                   <AudioReader 
                     title={article.title}
@@ -566,45 +571,49 @@ const NewsDetailPage = () => {
                     content={article.content}
                   />
                   
-                  <Button variant={isBookmarked ? "default" : "outline"} size="sm" className="rounded-sm gap-2 border-border/50" onClick={handleBookmark}>
-                    {isBookmarked ? <Check className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-                    <span className="hidden sm:inline font-bold">{isBookmarked ? "সংরক্ষিত" : "সংরক্ষণ"}</span>
+                  <Button variant={isBookmarked ? "default" : "outline"} size="sm" className="rounded-md gap-1.5 text-xs h-9 border-border/60" onClick={handleBookmark}>
+                    {isBookmarked ? <Check className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+                    <span className="font-bold">{isBookmarked ? "সংরক্ষিত" : "সংরক্ষণ"}</span>
                   </Button>
 
-                  <Button variant="outline" size="sm" className="rounded-sm gap-2 border-border/50" onClick={handleShare}>
-                    <Share2 className="w-4 h-4" />
-                    <span className="hidden sm:inline font-bold">শেয়ার</span>
+                  <Button variant="outline" size="sm" className="rounded-md gap-1.5 text-xs h-9 border-border/60" onClick={handleShare}>
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span className="font-bold">শেয়ার</span>
                   </Button>
                 </div>
               </div>
 
               {/* Image */}
               {article.image_url && (
-                <div className="mb-12">
+                <div className="mb-8 sm:mb-10">
                   <div className="relative aspect-video w-full overflow-hidden border border-border bg-muted group rounded-lg">
                     <img
                       src={sanitizeImageUrl(imageSrc)!}
                       alt={article.title}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                      loading="eager"
+                      decoding="async"
+                      fetchPriority="high"
                     />
                   </div>
                   {imageCaption && (
-                    <div className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                    <div className="mt-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 text-center sm:text-left">
                       {imageCaption}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Content */}
+              {/* Excerpt */}
               {article.excerpt && (
-                <div className="text-xl font-medium text-slate-700 dark:text-slate-300 leading-relaxed mb-8 border-l-4 border-primary pl-4">
+                <div className="text-base sm:text-lg font-medium text-slate-700 dark:text-slate-300 leading-relaxed mb-6 sm:mb-8 border-l-4 border-primary pl-3.5 sm:pl-4 py-1 bg-muted/20 rounded-r">
                   {article.excerpt}
                 </div>
               )}
 
+              {/* Content */}
               {article.content ? (
-                <div className="prose-article leading-relaxed text-justify mx-auto w-full max-w-[92%]" style={{ fontSize: `${fontSize}px` }}>
+                <div className="prose-article leading-relaxed mx-auto w-full" style={{ fontSize: `${fontSize}px` }}>
                   <RichContentWithAds
                     content={article.content || ""}
                     renderAd={(index: number) => (
@@ -612,20 +621,14 @@ const NewsDetailPage = () => {
                         placement="article_inline" 
                         slot={index === 0 ? "9876543210" : index === 1 ? "multi-level-middle" : "multi-level"} 
                         index={index} 
-                        className={cn(
-                          "my-8",
-                          index === 0 
-                            ? "flex flex-col gap-4 py-6 border-y border-dashed border-border/50 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl items-center justify-center relative w-full md:w-1/2"
-                            : "w-full md:w-1/2 block"
-                        )} 
-                        style={{ marginLeft: 0, marginRight: 0 }}
+                        className="my-6 w-full flex items-center justify-center p-2 rounded-xl border border-dashed border-border/60 bg-muted/10 overflow-hidden"
                       />
                     )}
                     adPositions={getAdPositions(article.content)}
                   />
                 </div>
               ) : (
-                <div className="space-y-4 max-w-[92%] mx-auto my-8">
+                <div className="space-y-4 w-full my-8">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-11/12" />
                   <Skeleton className="h-4 w-full" />
@@ -637,11 +640,11 @@ const NewsDetailPage = () => {
               )}
 
               {/* Bottom Card Ad */}
-              <div className="mt-12 mb-6 border border-border rounded-xl shadow-sm overflow-hidden bg-slate-50 dark:bg-slate-900/20 p-2">
+              <div className="mt-8 sm:mt-12 mb-6">
                 <UniversalAdBanner 
-                   placement="header" 
+                   placement="article_bottom" 
                    slot="8219463510"
-                   className="w-full flex items-center justify-center object-contain min-h-[90px] rounded-lg" 
+                   className="w-full rounded-xl overflow-hidden shadow-sm" 
                    format="horizontal"
                 />
               </div>
@@ -751,15 +754,13 @@ const NewsDetailPage = () => {
 
             {/* Sidebar */}
             <aside className="lg:col-span-4 space-y-10">
-              <UniversalAdBanner placement="sidebar" className="rounded-3xl shadow-sm" />
               <TabbedNewsWidget 
                 latestNews={blockNews} 
                 popularNews={blockNews}
               />
               <div className="sticky top-28 space-y-8">
-                <UniversalAdBanner placement="article_side" slot="3344556677" index={0} className="rounded-3xl shadow-sm" />
+                <UniversalAdBanner placement="sidebar" slot="3344556677" className="rounded-2xl overflow-hidden shadow-sm" />
                 <NewsletterWidget />
-                <UniversalAdBanner placement="article_side" slot="2475391229" index={1} className="rounded-3xl shadow-sm" />
               </div>
             </aside>
           </div>

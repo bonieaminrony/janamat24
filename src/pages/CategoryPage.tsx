@@ -323,37 +323,20 @@ const CategoryPage = () => {
               ) : (
                 <>
                   <div className={`grid gap-6 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
-                    {allNews.map((item, idx) => (
-                      <Fragment key={item.id}>
-                        <NewsCard
-                          id={item.id}
-                          title={item.title}
-                          slug={item.slug}
-                          excerpt={item.excerpt}
-                          content={item.content}
-                          image_url={item.image_url}
-                          published_at={item.published_at}
-                          views={item.views}
-                          category={item.categories}
-                          variant={viewMode === "grid" ? "default" : "horizontal"}
-                        />
-                        
-                        {/* Native In-Feed Ad Every 4 Items */}
-                        {(idx + 1) % 4 === 0 && (
-                          <div className={`group flex ${viewMode === "grid" ? "flex-col" : "flex-row"} gap-4 bg-slate-50 dark:bg-slate-900/50 border border-dashed border-border p-4 transition-colors items-center rounded-xl`}>
-                            <div className={`${viewMode === "grid" ? "w-full aspect-[16/9]" : "w-[120px] sm:w-[150px] aspect-[4/3]"} overflow-hidden flex-shrink-0 bg-muted flex items-center justify-center relative rounded-md`}>
-                              <span className="absolute top-0 right-0 bg-primary text-white text-[9px] font-black px-1 z-10 pointer-events-none uppercase">Ad</span>
-                              <UniversalAdBanner placement="in_article" slot="9876543210" className="w-full h-full" format={viewMode === "grid" ? "rectangle" : "horizontal"} />
-                            </div>
-                            <div className="flex flex-col justify-center flex-1 w-full mt-2 lg:mt-0">
-                              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1 flex items-center gap-1"><Star className="w-3 h-3"/> স্পনসর্ড কন্টেন্ট</span>
-                              <h4 className="font-bold text-[1.1rem] leading-snug text-headline line-clamp-2">
-                                তীব্র গরমে আপনার সন্তানের সুরক্ষায় এখনই অর্ডার করুন
-                              </h4>
-                            </div>
-                          </div>
-                        )}
-                      </Fragment>
+                    {allNews.map((item) => (
+                      <NewsCard
+                        key={item.id}
+                        id={item.id}
+                        title={item.title}
+                        slug={item.slug}
+                        excerpt={item.excerpt}
+                        content={item.content}
+                        image_url={item.image_url}
+                        published_at={item.published_at}
+                        views={item.views}
+                        category={item.categories}
+                        variant={viewMode === "grid" ? "default" : "horizontal"}
+                      />
                     ))}
                   </div>
                   
@@ -385,15 +368,14 @@ const CategoryPage = () => {
             </div>
 
             {/* Sidebar */}
-            <aside className="lg:col-span-4 space-y-10">
+            <aside className="lg:col-span-4 space-y-8">
               {/* Ad at the top */}
-              <UniversalAdBanner placement="sidebar" slot="3344556677" className="rounded-3xl shadow-sm" />
+              <UniversalAdBanner placement="sidebar" slot="3344556677" className="rounded-2xl overflow-hidden shadow-sm" />
 
               <TabbedNewsWidget 
                 latestNews={allNews.slice(0, 10)} 
                 popularNews={popularNews} 
               />
-              <UniversalAdBanner placement="sidebar" slot="2475391229" className="rounded-3xl shadow-sm" />
               <WeatherWidget />
               <PrayerTimesWidget />
               <div className="sticky top-28 space-y-8">

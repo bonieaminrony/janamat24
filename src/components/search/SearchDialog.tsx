@@ -61,23 +61,23 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 border-none bg-transparent shadow-none top-[15%] translate-y-0">
-        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-3xl rounded-[2.5rem] border border-white/40 dark:border-slate-800/40 shadow-[0_32px_128px_-12px_rgba(0,0,0,0.2)] overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+      <DialogContent className="w-[calc(100vw-24px)] sm:max-w-2xl p-0 border-none bg-transparent shadow-none top-[10%] sm:top-[15%] translate-y-0 mx-auto">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl rounded-2xl sm:rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-[0_32px_128px_-12px_rgba(0,0,0,0.2)] overflow-hidden animate-in fade-in zoom-in-95 duration-300">
           
           {/* Spotlight Input Area */}
-          <div className="relative group p-6 lg:p-8 border-b border-slate-100 dark:border-slate-800/50">
+          <form onSubmit={handleSearchSubmit} className="relative group p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800/50">
             <Search className={cn(
-              "absolute left-10 lg:left-12 top-1/2 -translate-y-1/2 h-6 w-6 transition-all duration-500",
-              searchQuery ? "text-primary scale-110" : "text-slate-300 dark:text-slate-600"
+              "absolute left-6 sm:left-8 top-1/2 -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 transition-all duration-300",
+              searchQuery ? "text-primary scale-110" : "text-slate-400 dark:text-slate-500"
             )} />
             <Input
               placeholder="আপনি কি খুঁজছেন?"
-              className="pl-14 lg:pl-16 h-14 bg-transparent border-none focus-visible:ring-0 text-xl lg:text-2xl font-bold text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-500 transition-all"
+              className="pl-9 sm:pl-12 pr-12 h-11 sm:h-14 bg-transparent border-none focus-visible:ring-0 text-base sm:text-xl font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
             />
-            <div className="absolute right-10 lg:right-12 top-1/2 -translate-y-1/2 flex items-center gap-3">
+            <div className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
               {searchQuery && (
                 <button
                   type="button"
@@ -91,28 +91,25 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                 <span>ESC</span>
               </div>
             </div>
-          </div>
+          </form>
 
-          <div className="p-4 lg:p-6 lg:pt-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
+          <div className="p-3 sm:p-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
             {/* Zero State / Suggestions */}
             {!searchQuery && (
-              <div className="space-y-8 py-4 px-4 bg-muted/20 rounded-3xl animate-in fade-in slide-in-from-top-4 duration-700">
+              <div className="space-y-6 py-2 px-2 sm:px-3 bg-muted/20 rounded-2xl animate-in fade-in slide-in-from-top-4 duration-500">
                 <div>
-                   <div className="flex items-center gap-2 mb-4 text-[11px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-[0.2em]">
+                   <div className="flex items-center gap-2 mb-3 text-[10px] sm:text-[11px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-[0.2em]">
                       <TrendingUp className="w-3.5 h-3.5" />
                       জনপ্রিয় সার্চ ট্যাগ
                    </div>
-                   <div className="flex flex-wrap gap-2.5">
-                      {trendingTags.map((tag, idx) => (
+                   <div className="flex flex-wrap gap-2">
+                      {trendingTags.map((tag) => (
                         <button
                           key={tag}
                           onClick={() => setSearchQuery(tag)}
-                          className={cn(
-                            "group flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 text-[13px] font-bold text-slate-600 dark:text-slate-300 hover:bg-primary/5 hover:border-primary/20 hover:text-primary transition-all duration-300 shadow-sm",
-                            `animate-in fade-in slide-in-from-left-${(idx + 1) * 2} duration-700`
-                          )}
+                          className="group flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60 text-xs sm:text-[13px] font-bold text-slate-600 dark:text-slate-300 hover:bg-primary/5 hover:border-primary/20 hover:text-primary transition-all duration-200 shadow-sm"
                         >
-                          <Hash className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-primary transition-colors" />
+                          <Hash className="w-3 h-3 text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors" />
                           {tag}
                         </button>
                       ))}

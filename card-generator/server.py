@@ -54,13 +54,16 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     slug = unquote(slug)
                     encoded_slug = quote(slug)
                     
-                    supabase_url = f"https://gsjxolnxtckdbjpfcobx.supabase.co/rest/v1/news?slug=eq.{encoded_slug}&select=title,excerpt,content,image_url,status,categories(name)&limit=1"
-                    supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzanhvbG54dGNrZGJqcGZjb2J4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMDYxODMsImV4cCI6MjA4MTg4MjE4M30.Xfb1rQOelf96nq3MiPkjAEUwv5jhOtNAQWI6x-jshjU"
+                    base_sb_url = os.environ.get("VITE_SUPABASE_URL", "https://gsjxolnxtckdbjpfcobx.supabase.co").rstrip("/")
+                    supabase_url = f"{base_sb_url}/rest/v1/news?slug=eq.{encoded_slug}&select=title,excerpt,content,image_url,status,categories(name)&limit=1"
+                    supabase_key = os.environ.get("VITE_SUPABASE_ANON_KEY", os.environ.get("VITE_SUPABASE_PUBLISHABLE_KEY", ""))
                     
-                    req_sb = urllib.request.Request(supabase_url, headers={
-                        'apikey': supabase_key,
-                        'Authorization': f"Bearer {supabase_key}"
-                    })
+                    headers_sb = {}
+                    if supabase_key:
+                        headers_sb['apikey'] = supabase_key
+                        headers_sb['Authorization'] = f"Bearer {supabase_key}"
+                    
+                    req_sb = urllib.request.Request(supabase_url, headers=headers_sb)
                     try:
                         with urllib.request.urlopen(req_sb, timeout=10) as resp_sb:
                             sb_data = json.loads(resp_sb.read().decode('utf-8'))
