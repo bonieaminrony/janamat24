@@ -80,11 +80,11 @@ export default function AdminCardGenerator() {
 
     setCardDate(initialBngDate);
 
-    // One-time migration to clear any old template containing text
-    const isCleared = localStorage.getItem("template_cleared_v2");
+    // One-time migration to clear any old template and load new design
+    const isCleared = localStorage.getItem("template_cleared_v3");
     if (!isCleared) {
       localStorage.removeItem("savedTemplate");
-      localStorage.setItem("template_cleared_v2", "true");
+      localStorage.setItem("template_cleared_v3", "true");
     }
 
     // Load saved template or default
