@@ -364,6 +364,18 @@ export function Header({ categories = [] }: HeaderProps) {
         </SheetContent>
       </Sheet>
 
+      {/* Mobile Top Advertisement (< 1024px) - in normal document flow (scrolls away on page scroll) */}
+      <div className="lg:hidden w-full bg-slate-50 dark:bg-slate-900/40 border-b border-slate-100 dark:border-slate-800/80 [&:not(:has(img,ins,.animate-pulse))]:hidden">
+        <div className="px-3 py-1.5 flex items-center justify-center">
+          <UniversalAdBanner 
+            placement="header" 
+            slot="8219463510"
+            className="w-full max-w-md mx-auto"
+            format="horizontal"
+          />
+        </div>
+      </div>
+
       <header 
         ref={row1Ref}
         className={cn(

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Youtube, Mail, Phone, MapPin, ChevronRight, Newspaper, Heart } from "lucide-react";
+import { Facebook, Youtube, Mail, Phone, MapPin, ChevronRight, Newspaper } from "lucide-react";
 import { toBanglaNumber } from "@/lib/bangla-utils";
 import logo from "@/assets/logo.png";
 interface Category {
@@ -117,23 +117,15 @@ export function Footer({ categories = [] }: FooterProps) {
           </div>
         </div>
 
-        {/* Bottom Editorial, Developer & Copyright */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6 py-6 border-t border-slate-200 dark:border-slate-800 text-center lg:text-left">
+        {/* Bottom Editorial & Copyright */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-6 border-t border-slate-200 dark:border-slate-800 text-center sm:text-left">
           {/* Editorial Info */}
-          <div className="text-xs sm:text-[14px] font-semibold text-slate-600 dark:text-slate-400 order-2 lg:order-1">
+          <div className="text-xs sm:text-[14px] font-semibold text-slate-600 dark:text-slate-400">
             <p>সম্পাদক ও প্রকাশক: <span className="text-slate-900 dark:text-white font-bold">জনমত ২৪ কর্তৃপক্ষ</span></p>
           </div>
           
-          {/* Developer Credit - Middle */}
-          <div className="text-xs sm:text-[14px] font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm order-1 lg:order-2">
-            <p className="flex items-center justify-center gap-1.5 sm:gap-2">
-              <Heart className="w-3.5 h-3.5 text-primary fill-primary animate-pulse" />
-              কারিগরি সহায়তায়: <span className="text-primary">তানভীর খান</span>
-            </p>
-          </div>
-
           {/* Copyright */}
-          <div className="text-xs sm:text-[14px] font-semibold text-slate-500 dark:text-slate-400 order-3 lg:order-3">
+          <div className="text-xs sm:text-[14px] font-semibold text-slate-500 dark:text-slate-400">
              <span>© {toBanglaNumber(new Date().getFullYear())} জনমত ২৪। সর্বস্বত্ব সংরক্ষিত।</span>
           </div>
         </div>

@@ -26,6 +26,7 @@ const PLACEMENTS = [
   { value: "article_bottom", label: "৯. কনভার্টার পেজের নিচে", type: "wide" },
   { value: "footer", label: "১০. একদম নিচে (ফুটার)", type: "wide" },
   { value: "related_news_inline", label: "১১. সম্পর্কিত সংবাদের মাঝে (কার্ড)", type: "square" },
+  { value: "featured_news_inline", label: "১২. হোমপেজ হাইলাইটস (কার্ডের মাঝে)", type: "wide" },
 ];
 
 export default function AdminAdPartners() {

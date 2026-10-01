@@ -487,11 +487,12 @@ const NewsDetailPage = () => {
       ? content.split('</p>').filter(p => p.trim()).length 
       : content.split('\n').filter(line => line.trim()).length;
     
-    // Only show 1 in-article ad placed after paragraph 3 if article is long enough (4+ paragraphs)
-    if (count >= 4) {
-      return [3];
+    if (count >= 3) {
+      return [1, 3];
+    } else if (count === 2) {
+      return [1, 2];
     }
-    return [];
+    return [1];
   };
 
   const { src: imageSrc, caption: imageCaption, kicker: imageKicker } = getImageUrlAndCaption(article.image_url);
@@ -617,12 +618,14 @@ const NewsDetailPage = () => {
                   <RichContentWithAds
                     content={article.content || ""}
                     renderAd={(index: number) => (
-                      <UniversalAdBanner 
-                        placement="article_inline" 
-                        slot={index === 0 ? "9876543210" : index === 1 ? "multi-level-middle" : "multi-level"} 
-                        index={index} 
-                        className="my-6 w-full flex items-center justify-center p-2 rounded-xl border border-dashed border-border/60 bg-muted/10 overflow-hidden"
-                      />
+                      <div className="w-full flex justify-center items-center my-6 not-prose">
+                        <UniversalAdBanner 
+                          placement="article_inline" 
+                          slot={index === 0 ? "9876543210" : index === 1 ? "multi-level-middle" : "multi-level"} 
+                          index={index} 
+                          className="w-[70%] max-w-[70%] mx-auto flex items-center justify-center p-1.5 sm:p-2 rounded-xl border border-dashed border-border/60 bg-muted/10 overflow-hidden shadow-xs"
+                        />
+                      </div>
                     )}
                     adPositions={getAdPositions(article.content)}
                   />
@@ -725,18 +728,14 @@ const NewsDetailPage = () => {
                       <RichContentWithAds
                         content={nextArticle.content || ""}
                         renderAd={(index: number) => (
-                          <UniversalAdBanner 
-                            placement="article_inline" 
-                            slot={index === 0 ? "9876543210-next" : index === 1 ? "multi-level-middle-next" : "multi-level-next"} 
-                            index={index + 10} 
-                            className={cn(
-                              "my-8",
-                              index === 0 
-                                ? "flex flex-col gap-4 py-6 border-y border-dashed border-border/50 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl items-center justify-center relative w-full md:w-1/2"
-                                : "w-full md:w-1/2 block"
-                            )} 
-                            style={{ marginLeft: 0, marginRight: 0 }}
-                          />
+                          <div className="w-full flex justify-center items-center my-6 not-prose">
+                            <UniversalAdBanner 
+                              placement="article_inline" 
+                              slot={index === 0 ? "9876543210-next" : index === 1 ? "multi-level-middle-next" : "multi-level-next"} 
+                              index={index + 1} 
+                              className="w-[70%] max-w-[70%] mx-auto flex items-center justify-center p-1.5 sm:p-2 rounded-xl border border-dashed border-border/50 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl overflow-hidden shadow-xs"
+                            />
+                          </div>
                         )}
                         adPositions={getAdPositions(nextArticle.content)}
                       />

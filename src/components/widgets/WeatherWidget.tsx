@@ -68,11 +68,11 @@ export function WeatherWidget() {
   const Icon = weather ? getBanglaWeatherCondition(weather.weatherCode ?? 0).IconComponent : Sun;
 
   if (isLoading && !weather) return (
-    <div className="h-[280px] bg-white dark:bg-slate-900 animate-pulse border border-border mb-8" />
+    <div className="h-[280px] bg-white dark:bg-slate-900 animate-pulse border border-border rounded-xs" />
   );
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-border mb-8">
+    <div className="bg-white dark:bg-slate-900 border border-border rounded-xs shadow-xs">
       {/* Newspaper Style Header */}
       <div className="flex items-center gap-2 border-b-2 border-primary pb-2 mb-4 mx-4 mt-4">
         <Sun className="w-4 h-4 text-primary" />

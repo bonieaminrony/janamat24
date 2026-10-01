@@ -75,7 +75,7 @@ export function TabbedNewsWidget({ latestNews, popularNews }: TabbedNewsWidgetPr
   );
 
   return (
-    <div className="relative group overflow-hidden bg-white dark:bg-slate-900 border border-border my-6 rounded-lg">
+    <div className="relative group overflow-hidden bg-white dark:bg-slate-900 border border-border rounded-xs shadow-xs">
       
       <Tabs defaultValue="latest" value={activeTab} onValueChange={setActiveTab} className="w-full relative z-10">
         <TabsList className="w-full grid grid-cols-2 bg-slate-100 dark:bg-slate-950 p-0 h-auto border-b border-border rounded-none">

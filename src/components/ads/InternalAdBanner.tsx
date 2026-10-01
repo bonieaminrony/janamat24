@@ -26,19 +26,19 @@ interface AdBanner {
 }
 
 const placementStyles: Record<string, string> = {
-  home_page_top: "hidden lg:block w-full max-w-5xl mx-auto min-h-[90px]",
+  home_page_top: "w-full max-w-5xl mx-auto min-h-[90px]",
   home_page_middle: "w-full max-w-5xl mx-auto min-h-[90px] sm:min-h-[100px] md:min-h-[120px] my-6 sm:my-8",
   home_column_center: "w-full mx-auto min-h-[90px]",
   home_feed: "w-full min-h-[90px]",
-  featured_news_inline: "w-full max-w-3xl mx-auto my-4 min-h-[90px]",
+  featured_news_inline: "w-full h-full flex items-center justify-center",
   article_inline: "w-full max-w-3xl mx-auto my-6 min-h-[90px] sm:min-h-[120px]",
   article_side: "w-full min-h-[250px]",
   article_bottom: "w-full max-w-4xl mx-auto min-h-[90px] sm:min-h-[110px] my-6",
   article_related: "w-full max-w-3xl mx-auto my-6 min-h-[90px]",
   quran_top_banner: "w-full max-w-4xl mx-auto min-h-[60px] md:min-h-[90px]",
   quran_side_square: "w-full min-h-[200px]",
-  header: "hidden lg:block w-full max-w-4xl mx-auto min-h-[90px]",
-  sidebar: "w-full min-h-[250px]",
+  header: "w-full max-w-4xl mx-auto min-h-[50px] sm:min-h-[70px] md:min-h-[90px] flex items-center justify-center",
+  sidebar: "w-full min-h-0 flex items-center justify-center",
   in_article: "w-full max-w-2xl mx-auto my-6 min-h-[90px] sm:min-h-[120px]",
   footer: "w-full max-w-5xl mx-auto min-h-[90px] sm:min-h-[110px]",
   related_news_inline: "w-full h-full min-h-[200px]",
@@ -76,7 +76,10 @@ const isPlacementMatched = (banner: any, targetPlacement: string): boolean => {
       try {
         const placements = JSON.parse(rawAltText);
         if (Array.isArray(placements)) {
-          return placements.includes(targetPlacement);
+          if (placements.includes(targetPlacement)) return true;
+          if (targetPlacement === "featured_news_inline" && (placements.includes("sidebar") || placements.includes("in_article") || placements.includes("article_side"))) {
+            return true;
+          }
         }
       } catch (e) {
         // Fallback on JSON error
@@ -84,8 +87,13 @@ const isPlacementMatched = (banner: any, targetPlacement: string): boolean => {
     }
     const list = rawAltText.split(",").map((p: string) => p.trim());
     if (list.includes(targetPlacement)) return true;
+    if (targetPlacement === "featured_news_inline" && (list.includes("sidebar") || list.includes("in_article") || list.includes("article_side"))) {
+      return true;
+    }
   }
-  return banner.placement_type === targetPlacement || rawAltText === targetPlacement;
+  return banner.placement_type === targetPlacement || 
+         rawAltText === targetPlacement ||
+         (targetPlacement === "featured_news_inline" && (banner.placement_type === "sidebar" || banner.placement_type === "in_article"));
 };
 
 export function InternalAdBanner({ placement, newsId, className, index, style }: InternalAdBannerProps) {
@@ -238,47 +246,57 @@ export function InternalAdBanner({ placement, newsId, className, index, style }:
     }
 
     return (
-      <div className={cn("w-full flex flex-col gap-3 py-3 box-border relative rounded-xl overflow-hidden bg-muted/5 border border-border/40 p-2 sm:p-3", placementStyles[placement], className)} style={style}>
-        <span className="absolute top-1 right-2 bg-background/80 dark:bg-slate-900/80 text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded z-10 uppercase tracking-widest border border-border/40 backdrop-blur-sm">
+      <div className={cn("w-full flex flex-col gap-2 box-border relative rounded-xl overflow-hidden bg-slate-50/60 dark:bg-slate-900/30 border border-border/40 p-2 sm:p-3 shadow-xs", placementStyles[placement], className)} style={style}>
+        <span className="absolute top-1.5 right-2 bg-background/80 dark:bg-slate-900/80 text-muted-foreground text-[9px] font-bold px-1.5 py-0.5 rounded z-10 uppercase tracking-widest border border-border/40 backdrop-blur-sm pointer-events-none">
           বিজ্ঞাপন
         </span>
         
-        <div className="flex w-full gap-2.5 sm:gap-3 h-32 sm:h-40 md:h-48">
-          <div className="w-1/2 h-full">
+        <div className="flex w-full gap-2 sm:gap-3 h-32 sm:h-40 md:h-52 items-center justify-center">
+          {/* Left: 1 Big Image */}
+          <div className="w-1/2 h-full flex items-center justify-center bg-slate-100/60 dark:bg-slate-900/60 rounded-lg overflow-hidden">
             {links[0] && sanitizeLinkUrl(links[0]) !== '#' ? (
-              <a href={sanitizeLinkUrl(links[0])} target="_blank" rel="noopener noreferrer sponsored" className="block w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
-                <img src={images[0]} alt="Ad 1" className="w-full h-full object-cover rounded-lg" loading="lazy" />
+              <a href={sanitizeLinkUrl(links[0])} target="_blank" rel="noopener noreferrer sponsored" className="flex items-center justify-center w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
+                <img src={images[0]} alt="Ad 1" className="w-full h-full object-contain rounded-lg" loading="lazy" />
               </a>
             ) : (
-              <div className="w-full h-full" onClick={handleClick}><img src={images[0]} alt="Ad 1" className="w-full h-full object-cover rounded-lg cursor-pointer" loading="lazy" /></div>
+              <div className="w-full h-full flex items-center justify-center" onClick={handleClick}>
+                <img src={images[0]} alt="Ad 1" className="w-full h-full object-contain rounded-lg cursor-pointer" loading="lazy" />
+              </div>
             )}
           </div>
           
-          <div className="w-1/2 flex flex-col gap-2.5 sm:gap-3 h-full">
-            <div className="w-full h-[calc(50%-0.375rem)]">
+          {/* Right: 2 Smaller Stacked Images */}
+          <div className="w-1/2 flex flex-col gap-2 sm:gap-2.5 h-full">
+            {/* Top Right Image */}
+            <div className="w-full h-[calc(50%-0.25rem)] sm:h-[calc(50%-0.3125rem)] flex items-center justify-center bg-slate-100/60 dark:bg-slate-900/60 rounded-lg overflow-hidden">
               {links[1] && sanitizeLinkUrl(links[1]) !== '#' ? (
-                <a href={sanitizeLinkUrl(links[1])} target="_blank" rel="noopener noreferrer sponsored" className="block w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
-                  <img src={images[1] || images[0]} alt="Ad 2" className="w-full h-full object-cover rounded-lg" loading="lazy" />
+                <a href={sanitizeLinkUrl(links[1])} target="_blank" rel="noopener noreferrer sponsored" className="flex items-center justify-center w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
+                  <img src={images[1] || images[0]} alt="Ad 2" className="w-full h-full object-contain rounded-lg" loading="lazy" />
                 </a>
               ) : (
-                <div className="w-full h-full" onClick={handleClick}><img src={images[1] || images[0]} alt="Ad 2" className="w-full h-full object-cover rounded-lg cursor-pointer" loading="lazy" /></div>
+                <div className="w-full h-full flex items-center justify-center" onClick={handleClick}>
+                  <img src={images[1] || images[0]} alt="Ad 2" className="w-full h-full object-contain rounded-lg cursor-pointer" loading="lazy" />
+                </div>
               )}
             </div>
             
-            <div className="w-full h-[calc(50%-0.375rem)]">
+            {/* Bottom Right Image */}
+            <div className="w-full h-[calc(50%-0.25rem)] sm:h-[calc(50%-0.3125rem)] flex items-center justify-center bg-slate-100/60 dark:bg-slate-900/60 rounded-lg overflow-hidden">
               {links[2] && sanitizeLinkUrl(links[2]) !== '#' ? (
-                <a href={sanitizeLinkUrl(links[2])} target="_blank" rel="noopener noreferrer sponsored" className="block w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
-                  <img src={images[2] || images[0]} alt="Ad 3" className="w-full h-full object-cover rounded-lg" loading="lazy" />
+                <a href={sanitizeLinkUrl(links[2])} target="_blank" rel="noopener noreferrer sponsored" className="flex items-center justify-center w-full h-full hover:opacity-95 transition-opacity" onClick={handleClick}>
+                  <img src={images[2] || images[0]} alt="Ad 3" className="w-full h-full object-contain rounded-lg" loading="lazy" />
                 </a>
               ) : (
-                <div className="w-full h-full" onClick={handleClick}><img src={images[2] || images[0]} alt="Ad 3" className="w-full h-full object-cover rounded-lg cursor-pointer" loading="lazy" /></div>
+                <div className="w-full h-full flex items-center justify-center" onClick={handleClick}>
+                  <img src={images[2] || images[0]} alt="Ad 3" className="w-full h-full object-contain rounded-lg cursor-pointer" loading="lazy" />
+                </div>
               )}
             </div>
           </div>
         </div>
 
         {randomBanner.ad_partners?.name && (
-          <div className="text-center w-full mt-1">
+          <div className="text-center w-full mt-0.5">
             <span className="font-bold text-xs sm:text-sm text-muted-foreground">{randomBanner.ad_partners.name}</span>
           </div>
         )}
@@ -291,10 +309,12 @@ export function InternalAdBanner({ placement, newsId, className, index, style }:
       src={randomBanner.image_url}
       alt={randomBanner.alt_text || "বিজ্ঞাপন"}
       className={cn(
-        "w-full max-w-full rounded-xl transition-transform hover:scale-[1.005] shadow-xs",
-        placement === 'header' 
+        "max-w-full rounded-xl transition-transform hover:scale-[1.005] shadow-xs",
+        placement === 'header'
           ? "h-full w-full object-contain" 
-          : "h-auto w-full object-contain bg-slate-50 dark:bg-slate-900/40"
+          : placement === 'featured_news_inline'
+            ? "max-h-full max-w-full w-auto h-auto object-contain mx-auto"
+            : "h-auto w-full object-contain bg-slate-50 dark:bg-slate-900/40"
       )}
       loading="lazy"
     />
@@ -310,13 +330,13 @@ export function InternalAdBanner({ placement, newsId, className, index, style }:
           href={sanitizeLinkUrl(randomBanner.link_url)}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className="block w-full h-full hover:opacity-95 transition-opacity"
+          className="flex items-center justify-center w-full h-full hover:opacity-95 transition-opacity"
           onClick={handleClick}
         >
           {content}
         </a>
       ) : (
-        <div onClick={handleClick} className="cursor-pointer">
+        <div onClick={handleClick} className="flex items-center justify-center w-full h-full cursor-pointer">
           {content}
         </div>
       )}

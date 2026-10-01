@@ -4,14 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { FeaturedNews } from "@/components/news/FeaturedNews";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { UniversalAdBanner } from "@/components/ads/UniversalAdBanner";
 import { Button } from "@/components/ui/button";
 import { 
-  TrendingUp, ChevronRight, Newspaper, Clock, BookOpen, Star, Zap
+  TrendingUp, ChevronRight, ChevronLeft, Newspaper, Clock, BookOpen, Star, Zap
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toBanglaNumber, formatBanglaRelativeTime } from "@/lib/bangla-utils";
 import { sanitizeImageUrl } from "@/lib/url-utils";
 import { TabbedNewsWidget } from "@/components/widgets/TabbedNewsWidget";
@@ -21,7 +22,6 @@ import { WeatherWidget } from "@/components/widgets/WeatherWidget";
 import { NewsletterWidget } from "@/components/widgets/NewsletterWidget";
 import { BreakingNewsTicker } from "@/components/news/BreakingNewsTicker";
 import { PollWidget } from "@/components/widgets/PollWidget";
-import { ArchiveCalendarWidget } from "@/components/widgets/ArchiveCalendarWidget";
 import { LiveTVWidget } from "@/components/news/LiveTVWidget";
 
 const PAGE_SIZE = 12;
@@ -38,6 +38,7 @@ interface News {
   title: string;
   slug: string;
   excerpt: string | null;
+  content?: string | null;
   image_url: string | null;
   views: number;
   published_at: string | null;
@@ -50,15 +51,14 @@ interface News {
 
 function FeaturedNewsSkeleton() {
   return (
-    <section className="mb-8 newspaper-border shadow-sm bg-white dark:bg-slate-900">
+    <section className="mb-6 sm:mb-8 newspaper-border shadow-xs bg-white dark:bg-slate-900 overflow-hidden rounded-sm">
       <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-border">
-        {/* Left Column Skeleton */}
-        <div className="lg:col-span-3 flex flex-col p-4 md:p-6 gap-6 order-2 lg:order-1">
-          {[1, 2].map((i) => (
-            <div key={i} className="flex flex-col gap-3">
-              <Skeleton className="h-5 w-full" />
-              <Skeleton className="h-5 w-3/4" />
-              <Skeleton className="aspect-[16/9] w-full rounded-sm" />
+        {/* Left Column Skeleton (3 items) */}
+        <div className="lg:col-span-3 flex flex-col justify-between p-4 md:p-5 divide-y divide-border/60 order-2 lg:order-1 h-full">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex flex-col justify-between flex-1 py-3 first:pt-0 last:pb-0 gap-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="aspect-[16/9] w-full rounded-xs" />
               <Skeleton className="h-3 w-20 mt-auto" />
             </div>
           ))}
@@ -66,40 +66,39 @@ function FeaturedNewsSkeleton() {
 
         {/* Center Column Skeleton */}
         <div className="lg:col-span-6 p-4 md:p-6 flex flex-col order-1 lg:order-2">
-          <Skeleton className="aspect-[16/10] w-full mb-5 rounded-sm" />
-          <Skeleton className="h-8 w-full mb-2" />
-          <Skeleton className="h-8 w-4/5 mb-4" />
-          <div className="flex gap-3 mb-4">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-4 w-24" />
+          <Skeleton className="aspect-[16/10] w-full mb-4 rounded-xs" />
+          <Skeleton className="h-7 w-full mb-2" />
+          <Skeleton className="h-7 w-3/4 mb-3" />
+          <div className="flex gap-3 mb-3">
+            <Skeleton className="h-3.5 w-20" />
+            <Skeleton className="h-3.5 w-24" />
           </div>
-          <Skeleton className="h-4 w-full mb-2" />
-          <Skeleton className="h-4 w-11/12 mb-6" />
+          <Skeleton className="h-3.5 w-full mb-1.5" />
+          <Skeleton className="h-3.5 w-5/6 mb-4" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-border mt-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border mt-auto">
             {[1, 2].map((i) => (
               <div key={i} className="flex flex-col gap-2">
-                <Skeleton className="aspect-[16/9] w-full rounded-sm" />
+                <Skeleton className="aspect-[16/9] w-full rounded-xs" />
                 <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right Column Skeleton */}
+        {/* Right Column Skeleton (7 items + ad) */}
         <div className="lg:col-span-3 flex flex-col p-4 md:p-6 bg-slate-50 dark:bg-slate-900/50 border-t lg:border-t-0 border-border order-3">
-          <div className="flex items-center gap-2 mb-4 pb-3 border-b-2 border-primary">
-            <Skeleton className="h-6 w-28" />
+          <div className="flex items-center gap-2 mb-4 pb-2 border-b-2 border-primary">
+            <Skeleton className="h-5 w-24" />
           </div>
-          <div className="flex flex-col gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex gap-3 items-start py-2">
-                <Skeleton className="w-[60px] h-[45px] sm:w-[84px] sm:h-[60px] rounded shrink-0" />
-                <div className="flex-1 flex flex-col gap-2">
-                  <Skeleton className="h-3.5 w-full" />
-                  <Skeleton className="h-3.5 w-2/3" />
-                  <Skeleton className="h-2.5 w-16 mt-1" />
+          <div className="flex flex-col gap-3">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="flex gap-2.5 items-start py-1.5">
+                <Skeleton className="w-[70px] h-[50px] rounded-xs shrink-0" />
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
+                  <Skeleton className="h-2 w-14 mt-1" />
                 </div>
               </div>
             ))}
@@ -138,16 +137,10 @@ const CATEGORIES_CACHE = "janamat_categories_v2";
 
 const Index = () => {
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [allLatestNews, setAllLatestNews] = useState<News[]>(() => {
-    try {
-      const cached = localStorage.getItem(HOME_BLOCK_CACHE);
-      if (cached) return JSON.parse(cached).slice(0, PAGE_SIZE);
-    } catch(e) {}
-    return [];
-  });
-  const [hasMore, setHasMore] = useState(true);
-  const [autoLoadCount, setAutoLoadCount] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pageParam = parseInt(searchParams.get("page") || "1", 10);
+  const currentPage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
+  const latestNewsSectionRef = useRef<HTMLDivElement>(null);
 
   // Real-time listener: When new news is published/updated, refresh homepage queries immediately
   useEffect(() => {
@@ -156,7 +149,8 @@ const Index = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "news" }, () => {
         queryClient.invalidateQueries({ queryKey: ["featured-news"] });
         queryClient.invalidateQueries({ queryKey: ["block-news"] });
-        queryClient.invalidateQueries({ queryKey: ["latest-news-paginated"] });
+        queryClient.invalidateQueries({ queryKey: ["latest-news-page"] });
+        queryClient.invalidateQueries({ queryKey: ["total-published-news-count"] });
         queryClient.invalidateQueries({ queryKey: ["popular-news"] });
       })
       .subscribe();
@@ -175,7 +169,7 @@ const Index = () => {
         .select("id, title, slug, excerpt, content, image_url, views, published_at, categories(name, slug)")
         .eq("status", "published")
         .order("published_at", { ascending: false })
-        .limit(12);
+        .limit(16);
       if (error) throw error;
       const result = (data || []) as unknown as News[];
       try { localStorage.setItem(HOME_FEATURED_CACHE, JSON.stringify(result)); } catch(e) {}
@@ -225,7 +219,7 @@ const Index = () => {
         .select("id, title, slug, excerpt, image_url, published_at, views, categories(name, slug)")
         .eq("status", "published")
         .order("published_at", { ascending: false })
-        .limit(36);
+        .limit(48);
       if (error) throw error;
       const result = (data || []) as unknown as News[];
       try { localStorage.setItem(HOME_BLOCK_CACHE, JSON.stringify(result)); } catch(e) {}
@@ -284,66 +278,101 @@ const Index = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Pagination for "More News"
-  const { data: paginatedNews = [], isFetching } = useQuery<News[]>({
-    queryKey: ["latest-news-paginated", page],
+  // Total published news count for accurate pagination
+  const { data: totalNewsCount = 0 } = useQuery({
+    queryKey: ["total-published-news-count"],
     queryFn: async () => {
-      const from = (page - 1) * PAGE_SIZE;
+      const { count, error } = await supabase
+        .from("news")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "published");
+      if (error) throw error;
+      return count || 0;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const totalPages = Math.max(1, Math.ceil(totalNewsCount / PAGE_SIZE));
+
+  // Current page's latest news query
+  const { data: latestPageNews = [], isLoading: isPageNewsLoading, isFetching: isPageNewsFetching } = useQuery<News[]>({
+    queryKey: ["latest-news-page", currentPage],
+    queryFn: async () => {
+      const from = (currentPage - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
       const { data, error } = await supabase
         .from("news")
-        .select("id, title, slug, excerpt, image_url, published_at, views, categories(name, slug)")
+        .select("id, title, slug, excerpt, content, image_url, published_at, views, categories(name, slug)")
         .eq("status", "published")
         .order("published_at", { ascending: false })
         .range(from, to);
         
       if (error) throw error;
-      const items = (data as unknown as News[]) || [];
-      
-      if (page === 1) {
-        setAllLatestNews(items);
-      } else {
-        setAllLatestNews(prev => {
-          const seen = new Set(prev.map(p => p.id));
-          return [...prev, ...items.filter(item => !seen.has(item.id))];
-        });
-      }
-      
-      setHasMore(items.length === PAGE_SIZE);
-      return items;
+      return (data || []) as unknown as News[];
     },
+    placeholderData: (previousData) => previousData,
     staleTime: 1000 * 60 * 5,
   });
 
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const isFetchingRef = useRef(isFetching);
-  const hasMoreRef = useRef(hasMore);
-
-  useEffect(() => {
-    isFetchingRef.current = isFetching;
-    hasMoreRef.current = hasMore;
-  }, [isFetching, hasMore]);
-
-  const loadMore = useCallback((isAuto = false) => {
-    if (!isFetchingRef.current && hasMoreRef.current) {
-      if (isAuto) setAutoLoadCount(prev => prev + 1);
-      setPage(prev => prev + 1);
-    }
-  }, []);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && autoLoadCount < MAX_AUTO_LOADS) {
-        loadMore(true);
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
+    
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (newPage === 1) {
+        next.delete("page");
+      } else {
+        next.set("page", newPage.toString());
       }
-    }, { threshold: 0.1, rootMargin: '200px' });
-    
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
+      return next;
+    }, { replace: false });
+
+    if (latestNewsSectionRef.current) {
+      const yOffset = -90;
+      const element = latestNewsSectionRef.current;
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  };
+
+  const getPaginationItems = (current: number, total: number) => {
+    if (total <= 10) {
+      return Array.from({ length: total }, (_, i) => i + 1);
     }
     
-    return () => observer.disconnect();
-  }, [autoLoadCount, loadMore]);
+    // When near the start (e.g. current <= 6)
+    if (current <= 6) {
+      const items: (number | string)[] = [];
+      for (let i = 1; i <= 8; i++) {
+        items.push(i);
+      }
+      items.push("...");
+      items.push(total);
+      return items;
+    }
+    
+    // When near the end (e.g. current >= total - 5)
+    if (current >= total - 5) {
+      const items: (number | string)[] = [1, "..."];
+      for (let i = total - 7; i <= total; i++) {
+        items.push(i);
+      }
+      return items;
+    }
+    
+    // When in the middle
+    return [
+      1,
+      "...",
+      current - 2,
+      current - 1,
+      current,
+      current + 1,
+      current + 2,
+      "...",
+      total,
+    ];
+  };
 
   const organizedBlocks = useMemo(() => {
     if (blockNews.length === 0 || categories.length === 0) return [];
@@ -427,9 +456,9 @@ const Index = () => {
             />
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
             {/* MAIN CONTENT PORTAL BLOCKS */}
-            <div className="flex-1 min-w-0 flex flex-col gap-8">
+            <div className="flex-1 min-w-0 flex flex-col gap-6 sm:gap-8">
               
               {/* Category Blocks */}
               {blockLoading ? (
@@ -449,72 +478,146 @@ const Index = () => {
                     />
                   ))}
                   
-                  {/* "More Latest News" infinite scroll block */}
-                  <div className="pt-2">
+                  {/* "Latest News" (সর্বশেষ সংবাদ) Paginated block */}
+                  <div ref={latestNewsSectionRef} className="pt-2">
                     <div className="flex items-center justify-between mb-6 pb-2 border-b border-border">
-                      <h2 className="text-xl md:text-2xl font-black text-headline border-t-4 border-primary pt-2 px-2 shrink-0 bg-background -mb-[10px]">
-                        আরো সর্বশেষ সংবাদ
-                      </h2>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {allLatestNews.map((item) => (
-                        <Link 
-                          key={item.id}
-                          to={`/news/${item.slug}`} 
-                          className="group flex gap-4 bg-white dark:bg-slate-900 border border-border p-3 transition-colors hover:border-primary/30"
-                        >
-                          <div className="w-[110px] aspect-[4/3] overflow-hidden flex-shrink-0 bg-muted">
-                            {sanitizeImageUrl(item.image_url) && (
-                              <img src={sanitizeImageUrl(item.image_url)!} alt="" className="w-full h-full object-cover group-hover:opacity-90 transition-opacity" loading="lazy" />
-                            )}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-[1.1rem] line-clamp-3 leading-snug group-hover:text-primary transition-colors text-headline">
-                              {item.title}
-                            </h4>
-                            {item.excerpt && (
-                              <p className="text-[13px] text-muted-foreground line-clamp-2 mt-2 font-medium">
-                                {item.excerpt}
-                              </p>
-                            )}
-                            <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1 mt-2">
-                              <Clock className="w-3 h-3 text-primary/50" />
-                              {formatBanglaRelativeTime(item.published_at)}
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
+                      <div className="flex items-center gap-2.5">
+                        <h2 className="text-xl md:text-2xl font-black text-headline border-t-4 border-primary pt-2 px-2 shrink-0 bg-background -mb-[10px]">
+                          সর্বশেষ সংবাদ
+                        </h2>
+                        {totalNewsCount > 0 && (
+                          <span className="hidden sm:inline-flex items-center text-xs font-bold text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full mt-2">
+                            পৃষ্ঠা {toBanglaNumber(currentPage)} / {toBanglaNumber(totalPages)}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div ref={loadMoreRef} className="py-10">
-                      {isFetching && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          <Skeleton className="h-28 w-full" />
-                          <Skeleton className="h-28 w-full" />
-                        </div>
-                      )}
-                      {!isFetching && hasMore && autoLoadCount >= MAX_AUTO_LOADS && (
-                        <div className="flex justify-center">
-                          <Button onClick={() => loadMore(false)} size="lg" className="rounded-full shadow-md hover:shadow-lg">
-                            আরো সংবাদ দেখুন
-                          </Button>
-                        </div>
-                      )}
-                      {!hasMore && allLatestNews.length > 0 && (
-                        <div className="text-center py-6">
-                          <div className="inline-flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-4 py-2 rounded-full">
-                            <Star className="w-4 h-4" /> সব সংবাদ দেখানো হয়েছে
+                    {/* News Grid */}
+                    {isPageNewsLoading && latestPageNews.length === 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                        {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                          <div key={i} className="flex gap-3 bg-white dark:bg-slate-900 border border-border/80 p-3 rounded-xs">
+                            <Skeleton className="w-[105px] sm:w-[120px] aspect-[4/3] rounded-xs shrink-0" />
+                            <div className="flex-1 flex flex-col justify-between">
+                              <Skeleton className="h-4 w-full mb-2" />
+                              <Skeleton className="h-3 w-4/5 mb-2" />
+                              <Skeleton className="h-2.5 w-16 mt-auto" />
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
+                        ))}
+                      </div>
+                    ) : latestPageNews.length > 0 ? (
+                      <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 transition-opacity duration-200", isPageNewsFetching ? "opacity-75" : "opacity-100")}>
+                        {latestPageNews.map((item) => {
+                          const summary = item.excerpt || (item.content ? item.content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim().substring(0, 180) : null);
+                          return (
+                            <Link 
+                              key={item.id}
+                              to={`/news/${item.slug}`} 
+                              className="group flex gap-3 bg-white dark:bg-slate-900 border border-border/80 p-2.5 sm:p-3 rounded-xs transition-all hover:border-primary/40 shadow-xs"
+                            >
+                              <div className="w-[105px] sm:w-[120px] aspect-[4/3] overflow-hidden flex-shrink-0 bg-muted rounded-xs">
+                                {sanitizeImageUrl(item.image_url) && (
+                                  <img src={sanitizeImageUrl(item.image_url)!} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                                )}
+                              </div>
+                              <div className="flex flex-col justify-between flex-1 min-w-0">
+                                <div>
+                                  <h4 className="font-bold text-[14px] sm:text-[15px] line-clamp-2 leading-snug group-hover:text-primary transition-colors text-headline mb-1">
+                                    {item.title}
+                                  </h4>
+                                  {summary && (
+                                    <p className="text-xs text-muted-foreground line-clamp-2 font-normal leading-relaxed">
+                                      {summary}
+                                    </p>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1 mt-auto pt-1 border-t border-border/40">
+                                  <Clock className="w-2.5 h-2.5 text-primary/60" />
+                                  {formatBanglaRelativeTime(item.published_at)}
+                                </span>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground bg-white dark:bg-slate-900 border border-border rounded-xs">
+                        কোনো সংবাদ পাওয়া যায়নি।
+                      </div>
+                    )}
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="mt-8 pt-6 border-t border-border flex flex-col items-center gap-3">
+                        <nav aria-label="সংবাদ পেজিনেশন" className="flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
+                          {/* Previous Button */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage <= 1}
+                            className="h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 border-border hover:bg-primary hover:text-white hover:border-primary disabled:opacity-40"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                            <span className="hidden sm:inline">পূর্ববর্তী</span>
+                          </Button>
+
+                          {/* Page Numbers */}
+                          {getPaginationItems(currentPage, totalPages).map((item, index) => {
+                            if (item === "...") {
+                              return (
+                                <span key={`ellipsis-${index}`} className="px-1.5 py-1 text-muted-foreground font-bold select-none text-xs sm:text-sm">
+                                  ...
+                                </span>
+                              );
+                            }
+                            const pageNum = item as number;
+                            const isActive = pageNum === currentPage;
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => handlePageChange(pageNum)}
+                                aria-current={isActive ? "page" : undefined}
+                                className={cn(
+                                  "min-w-[32px] sm:min-w-[38px] h-8 sm:h-9 px-2 rounded-xs text-xs sm:text-sm font-bold transition-all border",
+                                  isActive
+                                    ? "bg-primary text-white border-primary shadow-xs"
+                                    : "bg-white dark:bg-slate-900 border-border text-headline hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary"
+                                )}
+                              >
+                                {toBanglaNumber(pageNum)}
+                              </button>
+                            );
+                          })}
+
+                          {/* Next Button */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage >= totalPages}
+                            className="h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 border-border hover:bg-primary hover:text-white hover:border-primary disabled:opacity-40"
+                          >
+                            <span className="hidden sm:inline">পরবর্তী</span>
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </nav>
+
+                        {/* Page status info */}
+                        <p className="text-[12px] text-muted-foreground font-medium">
+                          পৃষ্ঠা <span className="font-bold text-headline">{toBanglaNumber(currentPage)}</span> এর <span className="font-bold text-headline">{toBanglaNumber(totalPages)}</span> (মোট <span className="font-bold text-headline">{toBanglaNumber(totalNewsCount)}</span>টি সংবাদ)
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
             </div>
 
             {/* MEGA SIDEBAR */}
-            <aside className="w-full lg:w-[360px] lg:max-w-[360px] flex-shrink-0 flex flex-col gap-8">
+            <aside className="w-full lg:w-[340px] xl:w-[360px] lg:max-w-[360px] flex-shrink-0 flex flex-col gap-6">
               
               {/* Live TV Widget */}
               <LiveTVWidget />
@@ -531,18 +634,22 @@ const Index = () => {
                 popularNews={popularNews} 
               />
 
-              <div className="py-2">
-                <UniversalAdBanner placement="sidebar" slot="3344556677" className="rounded-2xl overflow-hidden shadow-sm" />
+              {/* Advertisement - Reduced by ~30% (70% width), Centered, Uncropped */}
+              <div className="w-full flex justify-center py-1">
+                <div className="w-[70%] max-w-[260px] mx-auto flex items-center justify-center">
+                  <UniversalAdBanner 
+                    placement="sidebar" 
+                    slot="3344556677" 
+                    className="w-full h-auto rounded-lg overflow-hidden shadow-xs !min-h-0 flex items-center justify-center object-contain" 
+                  />
+                </div>
               </div>
               
               {/* Poll Widget */}
               <PollWidget />
               
-              <div className="flex flex-col gap-8">
-                <UniversalAdBanner placement="sidebar" slot="2475391229" className="rounded-2xl overflow-hidden shadow-sm" />
-                <ArchiveCalendarWidget />
-                <NewsletterWidget />
-              </div>
+              {/* Newsletter Widget */}
+              <NewsletterWidget />
 
             </aside>
             
